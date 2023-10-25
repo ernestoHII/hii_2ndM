@@ -58,6 +58,9 @@ namespace _2ndMonitor
             imageSliderTimer.Interval = 5000;  // 60 seconds
             imageSliderTimer.Tick += ImageSliderTimer_Tick;
             imageSliderTimer.Start();
+            // Start the SqlDependency listener.
+            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;";
+            SqlDependency.Start(connectionString);
 
             FetchData();
             SetupSqlDependency();
@@ -89,14 +92,25 @@ namespace _2ndMonitor
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                using (SqlCommand command = new SqlCommand("SELECT TOP 20 ItemCode, ItemDescription, Price FROM MstItem", connection))
+                using (SqlCommand command = new SqlCommand(@"
+            WITH NumberedRows AS 
+            (
+                SELECT 
+                    ItemCode, 
+                    ItemDescription, 
+                    Price,
+                    ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
+                FROM 
+                    MstItem
+            )
+            SELECT TOP 20 ItemCode, ItemDescription, Price 
+            FROM NumberedRows 
+            WHERE RowNum BETWEEN 1 AND 57 
+            ORDER BY NEWID()", connection))
                 {
                     // Setup the SQL dependency
                     var dependency = new SqlDependency(command);
                     dependency.OnChange += new OnChangeEventHandler(OnDataChanged);
-
-                    // Clear the notification for further use
-                    SqlDependency.ExStart(connectionString);
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
@@ -108,12 +122,46 @@ namespace _2ndMonitor
             TableLayoutPanel1_Paint(null, null);
         }
 
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+
+            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;";
+            SqlDependency.Stop(connectionString);
+
+            base.Dispose(disposing);
+        }
+
         private void OnDataChanged(object sender, SqlNotificationEventArgs e)
         {
-            if (e.Type == SqlNotificationType.Change)
+            // Handle the data change event here.
+            // Important: Remove the event handler since this notification is one-time.
+            SqlDependency dependency = sender as SqlDependency;
+            if (dependency != null)
             {
-                // Reload the data
-                FetchData();
+                dependency.OnChange -= OnDataChanged;
+            }
+
+            // Check if the change type is an insert.
+            if (e.Info == SqlNotificationInfo.Insert || e.Info == SqlNotificationInfo.Update)
+            {
+                // Check if the form's handle has been created.
+                if (this.IsHandleCreated)
+                {
+                    // Use the Invoke method to ensure UI-related code runs on the main thread
+                    this.Invoke(new MethodInvoker(() =>
+                    {
+                        // Show a MessageBox to notify the user of the new data.
+                        MessageBox.Show("New data has been inserted into the MstItem table.", "Data Inserted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Call FetchData again to re-register the dependency and get fresh data.
+                        FetchData();
+                    }));
+                }
             }
         }
 
@@ -155,10 +203,7 @@ namespace _2ndMonitor
 
             decimal gstValue = netTotalValue * 0.06m; // Calculate 6% GST
             this.GST.Text = gstValue.ToString("N2");
-            Balance.Text = netTotalValue.ToString("N2");
-
-            
-
+            Balance.Text = netTotalValue.ToString("N2");            
 
             int rowHeight = 30;  // Assuming each row to be of 30 units height, you can adjust this based on your need
 
@@ -179,6 +224,5 @@ namespace _2ndMonitor
             // Stop the SqlDependency when the form closes
             SqlDependency.Stop("Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;");
         }
-
     }
 }
