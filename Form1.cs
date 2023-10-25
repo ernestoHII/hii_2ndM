@@ -58,23 +58,16 @@ namespace _2ndMonitor
             imageSliderTimer.Interval = 5000;  // 60 seconds
             imageSliderTimer.Tick += ImageSliderTimer_Tick;
             imageSliderTimer.Start();
-            // Start the SqlDependency listener.
-            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;";
-            SqlDependency.Start(connectionString);
-
-            FetchData();
             SetupSqlDependency();
-
+            FetchData();
         }
 
         private void SetupSqlDependency()
         {
-            // Start SqlDependency with the application's connection string.
-            SqlDependency.Start("Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;");
-
-            FetchData();
+            // Start the SqlDependency listener.
+            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+            SqlDependency.Start(connectionString);
         }
-
         private void ImageSliderTimer_Tick(object sender, EventArgs e)
         {
             // Move to the next image in the list
@@ -87,26 +80,12 @@ namespace _2ndMonitor
         }
         private void FetchData()
         {
-            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;";
+            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                using (SqlCommand command = new SqlCommand(@"
-            WITH NumberedRows AS 
-            (
-                SELECT 
-                    ItemCode, 
-                    ItemDescription, 
-                    Price,
-                    ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowNum
-                FROM 
-                    MstItem
-            )
-            SELECT TOP 20 ItemCode, ItemDescription, Price 
-            FROM NumberedRows 
-            WHERE RowNum BETWEEN 1 AND 57 
-            ORDER BY NEWID()", connection))
+                using (SqlCommand command = new SqlCommand("SELECT ItemCode, ItemDescription, Price FROM dbo.MstItem", connection))
                 {
                     // Setup the SQL dependency
                     var dependency = new SqlDependency(command);
@@ -121,8 +100,6 @@ namespace _2ndMonitor
             }
             TableLayoutPanel1_Paint(null, null);
         }
-
-
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -135,36 +112,28 @@ namespace _2ndMonitor
 
             base.Dispose(disposing);
         }
-
         private void OnDataChanged(object sender, SqlNotificationEventArgs e)
         {
             // Handle the data change event here.
-            // Important: Remove the event handler since this notification is one-time.
             SqlDependency dependency = sender as SqlDependency;
             if (dependency != null)
             {
                 dependency.OnChange -= OnDataChanged;
             }
 
-            // Check if the change type is an insert.
-            if (e.Info == SqlNotificationInfo.Insert || e.Info == SqlNotificationInfo.Update)
+            // Check if the change type is an insert, update, or delete.
+            if (e.Info == SqlNotificationInfo.Insert || e.Info == SqlNotificationInfo.Update || e.Info == SqlNotificationInfo.Delete)
             {
                 // Check if the form's handle has been created.
                 if (this.IsHandleCreated)
                 {
-                    // Use the Invoke method to ensure UI-related code runs on the main thread
                     this.Invoke(new MethodInvoker(() =>
                     {
-                        // Show a MessageBox to notify the user of the new data.
-                        MessageBox.Show("New data has been inserted into the MstItem table.", "Data Inserted", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                        // Call FetchData again to re-register the dependency and get fresh data.
-                        FetchData();
+                        FetchData(); // Assuming FetchData() only modifies controls
                     }));
                 }
             }
         }
-
 
 
         private void TableLayoutPanel1_Paint(object sender, PaintEventArgs e)
