@@ -12,13 +12,25 @@ namespace _2ndMonitor
     {
         private DataTable dataTable;
         private Timer imageSliderTimer;
-/*        private List<string> imagePaths;  // List of paths to your images
-*/        private int currentImageIndex = 0;
-        private List<string> imagePaths = new List<string>();
+        private List<string> imagePaths;  // List of paths to your images
+        private int currentImageIndex = 0;
 
         public Form1()
         {
             InitializeComponent();
+            ReadImagePathsFromConfig();
+
+            imageSliderTimer = new Timer();
+            imageSliderTimer.Tick += ImageSliderTimer_Tick;
+            SetTimerIntervalFromConfig();
+            imageSliderTimer.Start();
+
+            // Set the first image if available
+            if (imagePaths.Count > 0)
+            {
+                pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
+            }
+
             // Get the screens available
             Screen[] screens = Screen.AllScreens;
 
@@ -43,29 +55,35 @@ namespace _2ndMonitor
                 Console.WriteLine("BUG");
             }
 
-            InitializeComponent();
-
             try
             {
-                // Initialize the list of image paths and timer
-                ReadImagePathsFromConfig();
+                if (pictureBox1 == null)
+                {
+                    throw new InvalidOperationException("pictureBox1 is not initialized.");
+                }
+
+                if (imagePaths == null || imagePaths.Count == 0)
+                {
+                    throw new InvalidOperationException("No image paths available.");
+                }
+
                 currentImageIndex = 0;
-                pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
+                var imagePath = imagePaths[currentImageIndex];
+
+                if (!File.Exists(imagePath))
+                {
+                    throw new FileNotFoundException("The image file was not found.", imagePath);
+                }
+
+                pictureBox1.Image = Image.FromFile(imagePath);
             }
             catch (Exception ex)
             {
-                // Handle the exception gracefully, e.g., by displaying a default image
-                // or showing an error message to the user
-                pictureBox1.Image = null; // Clear the image
-                MessageBox.Show("Error loading image: " + ex.Message);
-                Environment.Exit(0); // Forcefully exit the application
+                // This will now tell you exactly what went wrong
+                MessageBox.Show("Error loading image1: " + ex.Message);
+                Environment.Exit(0);
             }
 
-
-            imageSliderTimer = new Timer();
-            imageSliderTimer.Tick += ImageSliderTimer_Tick;
-            SetTimerIntervalFromConfig();
-            imageSliderTimer.Start();
             SetupSqlDependency();
             FetchData();
         }
@@ -81,28 +99,37 @@ namespace _2ndMonitor
                 {
                     string[] lines = File.ReadAllLines(configFilePath);
 
+                    // Assuming imagePaths is a field of the class
+                    imagePaths = new List<string>();  // Resetting or initializing the class field
+                    bool isReadingPaths = false;
+
                     foreach (string line in lines)
                     {
                         if (line.StartsWith("ImagePaths:"))
                         {
-                            // Start reading image paths
+                            isReadingPaths = true;
                             continue;
                         }
 
                         if (line.StartsWith("TimerIntervalSeconds:"))
                         {
-                            // Adjust the timer interval
+                            isReadingPaths = false;
                             if (int.TryParse(line.Replace("TimerIntervalSeconds:", "").Trim(), out int parsedIntervalSeconds))
                             {
                                 intervalSeconds = parsedIntervalSeconds;
                             }
+                            continue;
                         }
-                        else
+
+                        if (isReadingPaths)
                         {
-                            // Add image paths
+                            // Add image paths and print them for debugging
                             imagePaths.Add(line.Trim());
+                            Console.WriteLine("Image path read from config: " + line.Trim()); // Print each path for debugging
                         }
                     }
+
+                    // Rest of your code to use imagePaths and intervalSeconds
                 }
 
                 // Initialize the timer with the interval read from the config file
@@ -111,15 +138,16 @@ namespace _2ndMonitor
                 imageSliderTimer.Tick += ImageSliderTimer_Tick;
                 imageSliderTimer.Start();
 
-                // Now you can safely use imageSliderTimer
+                // Now you can safely use imageSliderTimer and imagePaths
             }
             catch (Exception ex)
             {
-                // Handle exceptions if any other error occurs (optional)
+                // Handle exceptions if any other error occurs
                 MessageBox.Show("Error reading config.txt: " + ex.Message);
                 imagePaths = new List<string>(); // Default image paths
             }
         }
+
 
 
         private void SetTimerIntervalFromConfig()
@@ -160,9 +188,6 @@ namespace _2ndMonitor
             }
         }
 
-
-
-
         private void SetupSqlDependency()
         {
             // Start the SqlDependency listener.
@@ -178,22 +203,16 @@ namespace _2ndMonitor
             {
                 currentImageIndex = 0;
             }
-            try
+
+            if (imagePaths.Count > 0 && File.Exists(imagePaths[currentImageIndex]))
             {
-                // Initialize the list of image paths and timer
-                ReadImagePathsFromConfig();
-                currentImageIndex = 0;
                 pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
             }
-            catch (Exception ex)
+            else
             {
-                // Handle the exception gracefully, e.g., by displaying a default image
-                // or showing an error message to the user
-                pictureBox1.Image = null; // Clear the image
-                MessageBox.Show("Error loading image: " + ex.Message);
-                Environment.Exit(0); // Forcefully exit the application
+                // Handle case where image is not found or list is empty
+                // Consider setting a default image or providing a suitable message/notification
             }
-
         }
         private void FetchData()
         {           
@@ -235,7 +254,10 @@ namespace _2ndMonitor
             {
                 components.Dispose();
             }
-
+            if (configWatcher != null)
+            {
+                configWatcher.Dispose();
+            }
             string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;";
             SqlDependency.Stop(connectionString);
 
@@ -264,10 +286,40 @@ namespace _2ndMonitor
             }
         }
 
+        private FileSystemWatcher configWatcher;
+
+        private void SetupConfigFileWatcher()
+        {
+            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
+
+            configWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(configFilePath),
+                Filter = Path.GetFileName(configFilePath),
+                NotifyFilter = NotifyFilters.LastWrite
+            };
+
+            configWatcher.Changed += OnConfigFileChanged;
+            configWatcher.EnableRaisingEvents = true;
+        }
+
+        private void OnConfigFileChanged(object source, FileSystemEventArgs e)
+        {
+            // Re-read the configuration
+            ReadImagePathsFromConfig();
+
+            // Consider using Invoke to update UI elements if needed
+            this.Invoke((MethodInvoker)delegate
+            {
+                // Refresh UI based on new configuration, if needed
+            });
+        }
+
+
         private void TableLayoutPanel1_Paint(object sender, PaintEventArgs e)
         {
             tableLayoutPanel1.Controls.Clear();
-            tableLayoutPanel1.ColumnCount = 4;
+            tableLayoutPanel1.ColumnCount = 3;
 
             int totalRows = dataTable.Rows.Count + 1;  // +1 for the header
             tableLayoutPanel1.RowCount = totalRows;
@@ -276,11 +328,24 @@ namespace _2ndMonitor
             decimal totalSub = 0; // Initialize the accumulator
             decimal netTotalValue = 0; // Initialize the accumulator
 
+            // Function to create a new label with increased font size
+            Label CreateLabelWithIncreasedFontSize(string text)
+            {
+                var label = new Label
+                {
+                    Text = text,    
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Dock = DockStyle.Fill
+                };
+                label.Font = new Font(label.Font.Name, label.Font.Size * 1.30f, label.Font.Style); // Increase font size by 10%
+                return label;
+            }
+
             // Adding Headers
-            tableLayoutPanel1.Controls.Add(new Label() { Text = "ItemCode", TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-            tableLayoutPanel1.Controls.Add(new Label() { Text = "ItemDescription", TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-            tableLayoutPanel1.Controls.Add(new Label() { Text = "Price", TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-            tableLayoutPanel1.Controls.Add(new Label() { Text = "Quantity", TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("ItemDescription"));
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("Price"));
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("Quantity"));
+
 
             foreach (DataRow row in dataTable.Rows)
             {
@@ -290,14 +355,13 @@ namespace _2ndMonitor
                 totalSub += price * quantity; // Update the accumulator
                 netTotalValue += price * quantity; // Update the accumulator
 
-                tableLayoutPanel1.Controls.Add(new Label() { Text = row["ItemCode"].ToString(), TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-                tableLayoutPanel1.Controls.Add(new Label() { Text = row["ItemDescription"].ToString(), TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-                tableLayoutPanel1.Controls.Add(new Label() { Text = formattedPrice, TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
-                tableLayoutPanel1.Controls.Add(new Label() { Text = quantity.ToString(), TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill });
+                // Adding row values with increased font size
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(row["ItemDescription"].ToString()));
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(formattedPrice));
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()));
             }
             subTotal.Text = totalSub.ToString("N2");
             NetTotal.Text = netTotalValue.ToString("N2");
-
             decimal gstValue = netTotalValue * 0.06m; // Calculate 6% GST
             this.GST.Text = gstValue.ToString("N2");
             Balance.Text = netTotalValue.ToString("N2");            
@@ -305,9 +369,9 @@ namespace _2ndMonitor
             int rowHeight = 30;  // Assuming each row to be of 30 units height, you can adjust this based on your need
 
             // Set the height of the TableLayoutPanel based on the number of rows.
-            if (totalRows > 10)
+            if (totalRows > 20)
             {
-                tableLayoutPanel1.Height = 10 * rowHeight;  // This would potentially activate the scrollbar in the Panel
+                tableLayoutPanel1.Height = 18 * rowHeight;  // This would potentially activate the scrollbar in the Panel
             }
             else
             {
@@ -320,6 +384,11 @@ namespace _2ndMonitor
 
             // Stop the SqlDependency when the form closes
             SqlDependency.Stop("Server=DESKTOP-JDQGAO5;Database=easypos;User Id=sa;Password=easyfis;");
+        }
+        private void LogError(Exception ex)
+        {
+            string errorMessage = $"[{DateTime.Now}] - Error: {ex.Message}\nStackTrace: {ex.StackTrace}\n";
+            File.AppendAllText(@"path\to\error_log.txt", errorMessage);
         }
     }
 }
