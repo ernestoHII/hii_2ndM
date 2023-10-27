@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.Windows.Forms;
+using System.IO;
 
 namespace _2ndMonitor
 {
@@ -11,8 +12,9 @@ namespace _2ndMonitor
     {
         private DataTable dataTable;
         private Timer imageSliderTimer;
-        private List<string> imagePaths;  // List of paths to your images
-        private int currentImageIndex = 0;
+/*        private List<string> imagePaths;  // List of paths to your images
+*/        private int currentImageIndex = 0;
+        private List<string> imagePaths = new List<string>();
 
         public Form1()
         {
@@ -41,64 +43,191 @@ namespace _2ndMonitor
                 Console.WriteLine("BUG");
             }
 
-            // Initialize the list of image paths
-            imagePaths = new List<string>
+            InitializeComponent();
+
+            try
             {
-                "C:\\Users\\hii\\Documents\\Ads.png",
-                "C:\\Users\\hii\\Documents\\Ads2.png",
-                "C:\\Users\\hii\\Documents\\Ads3.png",
-                "C:\\Users\\hii\\Documents\\Ads4.png"
-            };
+                // Initialize the list of image paths and timer
+                ReadImagePathsFromConfig();
+                currentImageIndex = 0;
+                pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception gracefully, e.g., by displaying a default image
+                // or showing an error message to the user
+                pictureBox1.Image = null; // Clear the image
+                MessageBox.Show("Error loading image: " + ex.Message);
+                Environment.Exit(0); // Forcefully exit the application
+            }
 
-            // Set the first image
-            pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
 
-            // Initialize the timer for image slideshow
             imageSliderTimer = new Timer();
-            imageSliderTimer.Interval = 5000;  // 60 seconds
             imageSliderTimer.Tick += ImageSliderTimer_Tick;
+            SetTimerIntervalFromConfig();
             imageSliderTimer.Start();
             SetupSqlDependency();
             FetchData();
         }
+        private void ReadImagePathsFromConfig()
+        {
+            try
+            {
+                int intervalSeconds = 5; // Default interval in seconds
+
+                // Read the config file if it exists
+                string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
+                if (File.Exists(configFilePath))
+                {
+                    string[] lines = File.ReadAllLines(configFilePath);
+
+                    foreach (string line in lines)
+                    {
+                        if (line.StartsWith("ImagePaths:"))
+                        {
+                            // Start reading image paths
+                            continue;
+                        }
+
+                        if (line.StartsWith("TimerIntervalSeconds:"))
+                        {
+                            // Adjust the timer interval
+                            if (int.TryParse(line.Replace("TimerIntervalSeconds:", "").Trim(), out int parsedIntervalSeconds))
+                            {
+                                intervalSeconds = parsedIntervalSeconds;
+                            }
+                        }
+                        else
+                        {
+                            // Add image paths
+                            imagePaths.Add(line.Trim());
+                        }
+                    }
+                }
+
+                // Initialize the timer with the interval read from the config file
+                imageSliderTimer = new Timer();
+                imageSliderTimer.Interval = intervalSeconds * 1000; // Convert to milliseconds
+                imageSliderTimer.Tick += ImageSliderTimer_Tick;
+                imageSliderTimer.Start();
+
+                // Now you can safely use imageSliderTimer
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions if any other error occurs (optional)
+                MessageBox.Show("Error reading config.txt: " + ex.Message);
+                imagePaths = new List<string>(); // Default image paths
+            }
+        }
+
+
+        private void SetTimerIntervalFromConfig()
+        {
+            try
+            {
+                string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
+
+                // Create a default config file with default values if it doesn't exist
+                if (!File.Exists(configFilePath))
+                {
+                                        string defaultConfigContents = $@"# Configuration for image slideshow
+                    ImagePaths:
+                    DefaultImage.png  # Specify the default image location in the same folder
+                    TimerIntervalSeconds: 5";
+                    File.WriteAllText(configFilePath, defaultConfigContents);
+                }
+
+                // Read the timer interval from the config file
+                string[] lines = File.ReadAllLines(configFilePath);
+                foreach (string line in lines)
+                {
+                    if (line.StartsWith("TimerIntervalSeconds:"))
+                    {
+                        // Adjust the timer interval
+                        int intervalSeconds;
+                        if (int.TryParse(line.Replace("TimerIntervalSeconds:", "").Trim(), out intervalSeconds))
+                        {
+                            imageSliderTimer.Interval = intervalSeconds * 1000; // Convert to milliseconds
+                        }
+                        break; // No need to read further
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Handle exceptions if any other error occurs (optional)
+            }
+        }
+
+
+
 
         private void SetupSqlDependency()
         {
             // Start the SqlDependency listener.
-            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+            string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+
             SqlDependency.Start(connectionString);
         }
         private void ImageSliderTimer_Tick(object sender, EventArgs e)
         {
-            // Move to the next image in the list
+            // Display the next image in the list
             currentImageIndex++;
             if (currentImageIndex >= imagePaths.Count)
             {
-                currentImageIndex = 0;  // Reset to the first image if we've shown all images
+                currentImageIndex = 0;
             }
-            pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
+            try
+            {
+                // Initialize the list of image paths and timer
+                ReadImagePathsFromConfig();
+                currentImageIndex = 0;
+                pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception gracefully, e.g., by displaying a default image
+                // or showing an error message to the user
+                pictureBox1.Image = null; // Clear the image
+                MessageBox.Show("Error loading image: " + ex.Message);
+                Environment.Exit(0); // Forcefully exit the application
+            }
+
         }
         private void FetchData()
-        {
-            string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+        {           
+            string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            try
             {
-                connection.Open();
-                using (SqlCommand command = new SqlCommand("SELECT ItemCode, ItemDescription, Price FROM dbo.MstItem", connection))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    // Setup the SQL dependency
-                    var dependency = new SqlDependency(command);
-                    dependency.OnChange += new OnChangeEventHandler(OnDataChanged);
-
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    connection.Open();
+                    using (SqlCommand command = new SqlCommand("SELECT ItemCode, ItemDescription, Price FROM dbo.MstItem", connection))
                     {
-                        dataTable = new DataTable();
-                        dataTable.Load(reader);
+                        // Setup the SQL dependency
+                        var dependency = new SqlDependency(command);
+                        dependency.OnChange += new OnChangeEventHandler(OnDataChanged);
+
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            dataTable = new DataTable();
+                            dataTable.Load(reader);
+                        }
                     }
                 }
+                TableLayoutPanel1_Paint(null, null);
             }
-            TableLayoutPanel1_Paint(null, null);
+            catch (SqlException ex)
+            {
+                MessageBox.Show($"Error in database operation: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"General error: {ex.Message}");
+            }
+        
         }
         protected override void Dispose(bool disposing)
         {
@@ -134,7 +263,6 @@ namespace _2ndMonitor
                 }
             }
         }
-
 
         private void TableLayoutPanel1_Paint(object sender, PaintEventArgs e)
         {
