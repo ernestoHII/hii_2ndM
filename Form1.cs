@@ -198,36 +198,44 @@ namespace _2ndMonitor
                         {
                             string formInformation = dataTable.Rows[0]["FormInformation"].ToString();
                             string actionInformation = dataTable.Rows[0]["ActionInformation"].ToString();
-                            Console.WriteLine("Action Information: " + actionInformation); // Print to the console
-                            Console.WriteLine("Form Information: " + formInformation); // Print to the console
 
                             if (actionInformation == "AddSales")
                             {
-                                // Code for AddSales
-                            }
-                            if (actionInformation == "AddSalesLine")
-                            {
-                                // Code for AddSalesLine
-                            }
-                            if (actionInformation == "UpdateSalesLine")
-                            {
-                                // Code for UpdateSalesLine
-                            }
-                            if (actionInformation == "DeleteSalesLine")
-                            {
-                                // Code for DeleteSalesLine
-                            }
-                            if (actionInformation == "TenderSales")
-                            {
-                                // Code for TenderSales
+                                // Loop to add empty rows up to the 7th row
+                                for (int row = 0; row < 8; row++)
+                                {
+                                    Label emptyLabel = CreateLabelWithIncreasedFontSize(" ", 14, true);
+                                    tableLayoutPanel1.Controls.Add(emptyLabel, 1, row);
+                                }
+
+                                // Create a label with the specified text and font properties
+                                Label label = CreateLabelWithIncreasedFontSize("Welcome back! Great to see you again!", 11, true);
+
+                                // Add the label to the 8th row in the second column (index 1)
+                                tableLayoutPanel1.Controls.Add(label, 1, 8);
                             }
 
-
-                            if (actionInformation == "AddSales" || actionInformation == "AddSalesLine" || actionInformation == "UpdateSalesLine" || actionInformation == "DeleteSalesLine" || actionInformation == "TenderSales")
+                            else if (actionInformation == "AddSalesLine")
                             {
-                                // Parse the FormInformation as JSON
+                                // Remove existing labels in the second column (index 1) and rows 0 to 7
+                                for (int row = 0; row < 9; row++)
+                                {
+                                    foreach (Control control in tableLayoutPanel1.Controls)
+                                    {
+                                        if (tableLayoutPanel1.GetColumn(control) == 1 && tableLayoutPanel1.GetRow(control) == row)
+                                        {
+                                            tableLayoutPanel1.Controls.Remove(control);
+                                            control.Dispose(); // Dispose of the removed control
+                                            break; // Exit the loop after removing one control
+                                        }
+                                    }
+                                }
+
+                                // Insert data into the table for AddSalesLine
+                                // Your code to insert data into the table goes here
+
+                                // Rest of your code for AddSalesLine and UpdateSalesLine
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
-
                                 if (jsonObject != null)
                                 {
                                     // Extract the "Price" property from the JSON data
@@ -240,11 +248,12 @@ namespace _2ndMonitor
                                     {
                                         decimal actualPrice = price ?? 0m;
 
-                                        // You can use itemId to search for ItemDescription in the MstItem table.
-                                        string itemDescription = GetItemDescriptionById(itemId);
+                                        // Use the modified GetItemInfoById to retrieve both ItemDescription and Category
+                                        (string itemDescription, string category) = GetItemInfoById(itemId);
 
-                                        // Call TableLayoutPanel1_Paint and pass itemDescription, price, and quantity
-                                        TableLayoutPanel1_Paint(null, null, itemDescription, actualPrice, quantity);
+
+                                        // Call TableLayoutPanel1_Paint and pass itemDescription, category, actualPrice, and quantity
+                                        TableLayoutPanel1_Paint(null, null, itemDescription, category, actualPrice, quantity);
                                     }
                                     else
                                     {
@@ -252,7 +261,19 @@ namespace _2ndMonitor
                                     }
                                 }
                             }
+                            else if (actionInformation == "UpdateSalesLine")
+                            {
 
+                            }
+
+                            else if (actionInformation == "DeleteSalesLine")
+                            {
+                                // Code for DeleteSalesLine
+                            }
+                            else if (actionInformation == "TenderSales")
+                            {
+                                // Code for TenderSales
+                            }
                         }
                     }
                 }
@@ -268,8 +289,7 @@ namespace _2ndMonitor
         }
         //====================//====================//====================//====================//====================//====================//====================
 
-
-        private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, decimal price, int quantity)
+        private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, string category, decimal price, int quantity)
         {
             int totalRows = tableLayoutPanel1.RowCount;
 
@@ -285,37 +305,69 @@ namespace _2ndMonitor
                 return label;
             }
 
-            // Adding row values with increased font size
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
-            decimal amount = quantity * price; // Calculate the amount
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+            if (category == "ADD-ONS" || category == "OTHERS")
+            {
+                // Add the item to tableLayoutPanel2
+                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
+                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
+                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
+                decimal amount = quantity * price; // Calculate the amount
+                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+            }
+            else
+            {
+                // Adding row values with increased font size to tableLayoutPanel1
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
+                decimal amount = quantity * price; // Calculate the amount
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+            }
         }
 
+        private Label CreateLabelWithIncreasedFontSize(string text, int fontSize, bool bold)
+        {
+            var label = new Label
+            {
+                Text = text,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Fill
+            };
+
+            // Set the font properties
+            label.Font = new Font(label.Font.FontFamily, fontSize, bold ? FontStyle.Bold : FontStyle.Regular);
+
+            return label;
+
+        }
         // Function to retrieve ItemDescription from MstItem table based on ItemId
-        private string GetItemDescriptionById(int itemId)
+        private (string ItemDescription, string Category) GetItemInfoById(int itemId)
         {
             string itemDescription = ""; // Initialize with an empty string
+            string category = ""; // Initialize with an empty string
 
-            // Construct and execute a SQL query to retrieve the ItemDescription based on ItemId
-            string query = "SELECT ItemDescription FROM MstItem WHERE Id = @ItemId";
+            // Construct and execute a SQL query to retrieve the ItemDescription and Category based on ItemId
+            string query = "SELECT ItemDescription, Category FROM MstItem WHERE Id = @ItemId";
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@ItemId", itemId);
-                    object result = command.ExecuteScalar();
-                    if (result != null)
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        itemDescription = result.ToString();
+                        if (reader.Read())
+                        {
+                            itemDescription = reader["ItemDescription"].ToString();
+                            category = reader["Category"].ToString();
+                        }
                     }
                 }
             }
 
-            return itemDescription;
+            return (itemDescription, category);
         }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
