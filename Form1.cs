@@ -89,7 +89,7 @@ namespace _2ndMonitor
             }
 
             SetupSqlDependency();
-            FetchData();
+            InitialFetchData();
         }
         private void SetupSqlDependency()
         {
@@ -119,6 +119,35 @@ namespace _2ndMonitor
         }
 
         //====================//====================//====================//====================//====================//====================//====================//====================        
+        private void InitialFetchData()
+        {
+            try
+            {
+                string connectionString2 = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+                using (SqlConnection connection = new SqlConnection(connectionString2))
+                {
+                    connection.Open();
+                    using (SqlCommand command = new SqlCommand("SELECT FormInformation, ActionInformation FROM dbo.SysAuditTrail", connection))
+                    {
+                        // Setup the SQL dependency
+                        var dependency = new SqlDependency(command);
+                        dependency.OnChange += new OnChangeEventHandler(OnDataChanged);
+
+                        // Execute the command to establish the dependency
+                        command.ExecuteReader();
+/*                        DisplayToTable();
+*/                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine($"Error in database operation: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"General error: {ex.Message}");
+            }
+        }
         private void FetchData()
         {
             try
@@ -172,7 +201,29 @@ namespace _2ndMonitor
                             Console.WriteLine("Action Information: " + actionInformation); // Print to the console
                             Console.WriteLine("Form Information: " + formInformation); // Print to the console
 
-                            if (actionInformation == "AddSales" || actionInformation == "AddSalesLine" || actionInformation == "UpdateSalesLine")/* || actionInformation == "DeleteSalesLine")*/
+                            if (actionInformation == "AddSales")
+                            {
+                                // Code for AddSales
+                            }
+                            if (actionInformation == "AddSalesLine")
+                            {
+                                // Code for AddSalesLine
+                            }
+                            if (actionInformation == "UpdateSalesLine")
+                            {
+                                // Code for UpdateSalesLine
+                            }
+                            if (actionInformation == "DeleteSalesLine")
+                            {
+                                // Code for DeleteSalesLine
+                            }
+                            if (actionInformation == "TenderSales")
+                            {
+                                // Code for TenderSales
+                            }
+
+
+                            if (actionInformation == "AddSales" || actionInformation == "AddSalesLine" || actionInformation == "UpdateSalesLine" || actionInformation == "DeleteSalesLine" || actionInformation == "TenderSales")
                             {
                                 // Parse the FormInformation as JSON
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
@@ -189,15 +240,9 @@ namespace _2ndMonitor
                                     {
                                         decimal actualPrice = price ?? 0m;
 
-                                        // Now you have the "Price," "Quantity," and "ItemId" properties from the JSON data.
-                                        Console.WriteLine("Price: " + actualPrice);
-                                        Console.WriteLine("Quantity: " + quantity);
-                                        Console.WriteLine("ItemId: " + itemId);
                                         // You can use itemId to search for ItemDescription in the MstItem table.
                                         string itemDescription = GetItemDescriptionById(itemId);
-                                        Console.WriteLine("Item Description: " + itemDescription);
 
-                                        // Call TableLayoutPanel1_Paint if "Price" is not null
                                         // Call TableLayoutPanel1_Paint and pass itemDescription, price, and quantity
                                         TableLayoutPanel1_Paint(null, null, itemDescription, actualPrice, quantity);
                                     }
@@ -223,6 +268,31 @@ namespace _2ndMonitor
         }
         //====================//====================//====================//====================//====================//====================//====================
 
+
+        private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, decimal price, int quantity)
+        {
+            int totalRows = tableLayoutPanel1.RowCount;
+
+            // Function to create a new label with increased font size
+            Label CreateLabelWithIncreasedFontSize(string text)
+            {
+                var label = new Label
+                {
+                    Text = text,
+                    Dock = DockStyle.Fill
+                };
+                label.Font = new Font(label.Font.Name, label.Font.Size * 1.30f, label.Font.Style); // Increase font size by 10%
+                return label;
+            }
+
+            // Adding row values with increased font size
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
+            decimal amount = quantity * price; // Calculate the amount
+            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+        }
+
         // Function to retrieve ItemDescription from MstItem table based on ItemId
         private string GetItemDescriptionById(int itemId)
         {
@@ -246,56 +316,6 @@ namespace _2ndMonitor
 
             return itemDescription;
         }
-
-        private void TableLayoutPanel1_Paint(object sender, PaintEventArgs e, string itemDescription, decimal price, int quantity)
-        {
-            tableLayoutPanel1.Controls.Clear();
-            tableLayoutPanel1.ColumnCount = 3;
-
-            int totalRows = 1;  // Since you are displaying a single item, set totalRows to 1
-            tableLayoutPanel1.RowCount = totalRows;
-
-            decimal totalSub = 0; // Initialize the accumulator
-            decimal netTotalValue = 0; // Initialize the accumulator
-
-            // Function to create a new label with increased font size
-            Label CreateLabelWithIncreasedFontSize(string text)
-            {
-                var label = new Label
-                {
-                    Text = text,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Dock = DockStyle.Fill
-                };
-                label.Font = new Font(label.Font.Name, label.Font.Size * 1.30f, label.Font.Style); // Increase font size by 10%
-                return label;
-            }
-
-            // Adding Headers
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("Item Name"));
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("Quantity"));
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize("Price"));
-
-            // Use the parameters itemDescription, price, and quantity that were passed to this method
-            Console.WriteLine("Price: " + price);
-            Console.WriteLine("Quantity: " + quantity);
-            Console.WriteLine("Item Description: " + itemDescription);
-
-            totalSub += price * quantity; // Update the accumulator
-            netTotalValue += price * quantity; // Update the accumulator
-
-            // Adding row values with increased font size
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription));
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()));
-            tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")));
-/*
-            subTotal.Text = totalSub.ToString("N2");
-            NetTotal.Text = netTotalValue.ToString("N2");
-            decimal gstValue = netTotalValue * 0.06m; // Calculate 6% GST
-            GST.Text = gstValue.ToString("N2");
-            Balance.Text = (netTotalValue + gstValue).ToString("N2");*/
-        }
-
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -323,15 +343,15 @@ namespace _2ndMonitor
             if (e.Type == SqlNotificationType.Change)
             {
                 // Changes were made to the SysAuditTrail table
-/*                MessageBox.Show("Changes were made to the SysAuditTrail table.");
-*/
+                /*                MessageBox.Show("Changes were made to the SysAuditTrail table.");
+                */
             }
 
             // Check if the change type is an insert, update, or delete.
             if (e.Info == SqlNotificationInfo.Insert || e.Info == SqlNotificationInfo.Update || e.Info == SqlNotificationInfo.Delete)
             {
-/*                MessageBox.Show("Changes were made to the SysAuditTrail table.");
-*/
+                /*                MessageBox.Show("Changes were made to the SysAuditTrail table.");
+                */
                 // Check if the form's handle has been created.
                 if (this.IsHandleCreated)
                 {
