@@ -286,8 +286,17 @@ namespace _2ndMonitor
 
                             else if (actionInformation == "DeleteSalesLine")
                             {
-                                // Code for DeleteSalesLine
+                                JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
+                                if (jsonObject != null)
+                                {
+                                    int itemId = jsonObject.Value<int>("ItemId");
+                                    (string itemDescription, _) = GetItemInfoById(itemId);  // Assuming GetItemInfoById returns item description
+
+                                    // Find and delete the row from TableLayoutPanel
+                                    DeleteRowFromTableLayoutPanel(itemDescription);
+                                }
                             }
+
                             else if (actionInformation == "DeleteSales")
                             {
                                 tableLayoutPanel1.Controls.Clear();
@@ -310,6 +319,59 @@ namespace _2ndMonitor
             }
         }
         //====================//====================//====================//====================//====================//====================//====================
+        private void DeleteRowFromTableLayoutPanel(string itemDescription)
+        {
+            for (int row = 0; row < tableLayoutPanel1.RowCount; row++)
+            {
+                // Assuming the second cell (index 1) of each row contains the itemDescription Label
+                Label descriptionLabel = tableLayoutPanel1.GetControlFromPosition(1, row) as Label;
+
+                if (descriptionLabel != null && descriptionLabel.Text == itemDescription)
+                {
+                    // Remove all controls in the row
+                    for (int column = 0; column < tableLayoutPanel1.ColumnCount; column++)
+                    {
+                        var control = tableLayoutPanel1.GetControlFromPosition(column, row);
+                        tableLayoutPanel1.Controls.Remove(control);
+                        control.Dispose();
+                    }
+
+                    // Move all rows that are below this row, one step up
+                    for (int i = row + 1; i < tableLayoutPanel1.RowCount; i++)
+                    {
+                        for (int column = 0; column < tableLayoutPanel1.ColumnCount; column++)
+                        {
+                            var control = tableLayoutPanel1.GetControlFromPosition(column, i);
+                            tableLayoutPanel1.SetRow(control, i - 1);
+                        }
+                    }
+
+                    // Remove the last row
+                    tableLayoutPanel1.RowCount--;
+
+                    // Update the total amount
+                    UpdateTotalAmount();
+
+                    break; // Break out of the loop
+                }
+            }
+        }
+
+        private void UpdateTotalAmount()
+        {
+            totalAmount = 0;
+            // Recalculate the total amount based on the remaining rows
+            for (int row = 0; row < tableLayoutPanel1.RowCount; row++)
+            {
+                Label amountLabel = tableLayoutPanel1.GetControlFromPosition(3, row) as Label;
+                if (amountLabel != null && decimal.TryParse(amountLabel.Text, out decimal amount))
+                {
+                    totalAmount += amount;
+                }
+            }
+            Total.Text = $"Total: {totalAmount.ToString("F2")}";
+        }
+
         private void UpdateTableLayoutPanel(string itemDescription, int quantity, decimal price)
         {
             // Iterate through each row in the tableLayoutPanel
@@ -321,6 +383,15 @@ namespace _2ndMonitor
                 // Check if this row corresponds to the itemDescription
                 if (descriptionLabel != null && descriptionLabel.Text == itemDescription)
                 {
+                    // Get the old amount label (assuming it's in the fourth cell, index 3)
+                    Label amountLabel = tableLayoutPanel1.GetControlFromPosition(3, row) as Label;
+                    decimal oldAmount = 0m;
+                    if (amountLabel != null && decimal.TryParse(amountLabel.Text, out oldAmount))
+                    {
+                        // Subtract the old amount from the total
+                        totalAmount -= oldAmount;
+                    }
+
                     // Update the quantity label (assuming it's in the first cell, index 0)
                     Label quantityLabel = tableLayoutPanel1.GetControlFromPosition(0, row) as Label;
                     if (quantityLabel != null)
@@ -328,17 +399,15 @@ namespace _2ndMonitor
                         quantityLabel.Text = quantity.ToString();
                     }
 
-                    // Update the amount label (assuming it's in the fourth cell, index 3)
-                    // Calculate the new amount
-                    decimal amount = quantity * price;
-                    Label amountLabel = tableLayoutPanel1.GetControlFromPosition(3, row) as Label;
+                    // Calculate the new amount and update the amount label
+                    decimal newAmount = quantity * price;
                     if (amountLabel != null)
                     {
-                        amountLabel.Text = amount.ToString("F2");
+                        amountLabel.Text = newAmount.ToString("F2");
                     }
 
-                    // Update the total amount for all items
-                    totalAmount += amount;
+                    // Add the new amount to the total
+                    totalAmount += newAmount;
                     Total.Text = $"Total: {totalAmount.ToString("F2")}";
 
                     break; // Break the loop as we have found and updated the row
@@ -348,6 +417,7 @@ namespace _2ndMonitor
             // Refresh the display
             tableLayoutPanel1.Invalidate();
         }
+
 
 
         private decimal totalAmount = 0; // Class-level variable to keep track of the total amount
