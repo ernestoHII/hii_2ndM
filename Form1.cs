@@ -187,7 +187,7 @@ namespace _2ndMonitor
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (SqlCommand command = new SqlCommand("SELECT TOP 1 FormInformation, ActionInformation FROM dbo.SysAuditTrail ORDER BY Id DESC", connection))
+                    using (SqlCommand command = new SqlCommand("SELECT TOP 1 FormInformation, RecordInformation, ActionInformation FROM dbo.SysAuditTrail ORDER BY Id DESC", connection))
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
@@ -199,6 +199,7 @@ namespace _2ndMonitor
                         {
                             string formInformation = dataTable.Rows[0]["FormInformation"].ToString();
                             string actionInformation = dataTable.Rows[0]["ActionInformation"].ToString();
+                            string recordInformation = dataTable.Rows[0]["RecordInformation"].ToString();
 
                             if (actionInformation == "AddSales")
                             {
@@ -286,13 +287,13 @@ namespace _2ndMonitor
 
                             else if (actionInformation == "DeleteSalesLine")
                             {
-                                JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
+                                JObject jsonObject = JsonConvert.DeserializeObject<JObject>(recordInformation);
                                 if (jsonObject != null)
                                 {
                                     int itemId = jsonObject.Value<int>("ItemId");
                                     (string itemDescription, _) = GetItemInfoById(itemId);  // Assuming GetItemInfoById returns item description
 
-                                    // Find and delete the row from TableLayoutPanel
+                                    // Call method to delete the row from the TableLayoutPanel
                                     DeleteRowFromTableLayoutPanel(itemDescription);
                                 }
                             }
@@ -323,39 +324,53 @@ namespace _2ndMonitor
         {
             for (int row = 0; row < tableLayoutPanel1.RowCount; row++)
             {
-                // Assuming the second cell (index 1) of each row contains the itemDescription Label
                 Label descriptionLabel = tableLayoutPanel1.GetControlFromPosition(1, row) as Label;
 
                 if (descriptionLabel != null && descriptionLabel.Text == itemDescription)
                 {
+                    // Subtract the amount of this row from totalAmount
+                    Label amountLabel = tableLayoutPanel1.GetControlFromPosition(3, row) as Label;
+                    if (amountLabel != null && decimal.TryParse(amountLabel.Text, out decimal amount))
+                    {
+                        totalAmount -= amount;
+                        Total.Text = $"Total: {totalAmount.ToString("F2")}";
+                    }
+
                     // Remove all controls in the row
                     for (int column = 0; column < tableLayoutPanel1.ColumnCount; column++)
                     {
                         var control = tableLayoutPanel1.GetControlFromPosition(column, row);
-                        tableLayoutPanel1.Controls.Remove(control);
-                        control.Dispose();
+                        if (control != null)
+                        {
+                            tableLayoutPanel1.Controls.Remove(control);
+                            control.Dispose();
+                        }
                     }
 
-                    // Move all rows that are below this row, one step up
+                    // Shift all rows above one step down
                     for (int i = row + 1; i < tableLayoutPanel1.RowCount; i++)
                     {
                         for (int column = 0; column < tableLayoutPanel1.ColumnCount; column++)
                         {
                             var control = tableLayoutPanel1.GetControlFromPosition(column, i);
-                            tableLayoutPanel1.SetRow(control, i - 1);
+                            if (control != null)
+                            {
+                                tableLayoutPanel1.SetRow(control, i - 1);
+                            }
                         }
                     }
 
                     // Remove the last row
                     tableLayoutPanel1.RowCount--;
 
-                    // Update the total amount
-                    UpdateTotalAmount();
-
-                    break; // Break out of the loop
+                    break; // Row deleted, exit the loop
                 }
             }
+
+            // Refresh the display
+            tableLayoutPanel1.Invalidate();
         }
+
 
         private void UpdateTotalAmount()
         {
