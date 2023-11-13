@@ -234,9 +234,6 @@ namespace _2ndMonitor
                                     }
                                 }
 
-                                // Insert data into the table for AddSalesLine
-                                // Your code to insert data into the table goes here
-
                                 // Rest of your code for AddSalesLine and UpdateSalesLine
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
                                 if (jsonObject != null)
@@ -266,8 +263,27 @@ namespace _2ndMonitor
                             }
                             else if (actionInformation == "UpdateSalesLine")
                             {
+                                JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
+                                if (jsonObject != null)
+                                {
+                                    decimal? price = jsonObject.Value<decimal?>("Price");
+                                    int quantity = jsonObject.Value<int>("Quantity");
+                                    int itemId = jsonObject.Value<int>("ItemId");
 
+                                    if (price.HasValue)
+                                    {
+                                        decimal actualPrice = price ?? 0m;
+                                        (string itemDescription, string category) = GetItemInfoById(itemId);
+                                        // Update the TableLayoutPanel instead of calling TableLayoutPanel1_Paint
+                                        UpdateTableLayoutPanel(itemDescription, quantity, actualPrice);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Price is null. Skipping TableLayoutPanel1_Paint.");
+                                    }
+                                }
                             }
+
                             else if (actionInformation == "DeleteSalesLine")
                             {
                                 // Code for DeleteSalesLine
@@ -294,6 +310,46 @@ namespace _2ndMonitor
             }
         }
         //====================//====================//====================//====================//====================//====================//====================
+        private void UpdateTableLayoutPanel(string itemDescription, int quantity, decimal price)
+        {
+            // Iterate through each row in the tableLayoutPanel
+            for (int row = 0; row < tableLayoutPanel1.RowCount; row++)
+            {
+                // Assuming the second cell (index 1) of each row contains the itemDescription Label
+                Label descriptionLabel = tableLayoutPanel1.GetControlFromPosition(1, row) as Label;
+
+                // Check if this row corresponds to the itemDescription
+                if (descriptionLabel != null && descriptionLabel.Text == itemDescription)
+                {
+                    // Update the quantity label (assuming it's in the first cell, index 0)
+                    Label quantityLabel = tableLayoutPanel1.GetControlFromPosition(0, row) as Label;
+                    if (quantityLabel != null)
+                    {
+                        quantityLabel.Text = quantity.ToString();
+                    }
+
+                    // Update the amount label (assuming it's in the fourth cell, index 3)
+                    // Calculate the new amount
+                    decimal amount = quantity * price;
+                    Label amountLabel = tableLayoutPanel1.GetControlFromPosition(3, row) as Label;
+                    if (amountLabel != null)
+                    {
+                        amountLabel.Text = amount.ToString("F2");
+                    }
+
+                    // Update the total amount for all items
+                    totalAmount += amount;
+                    Total.Text = $"Total: {totalAmount.ToString("F2")}";
+
+                    break; // Break the loop as we have found and updated the row
+                }
+            }
+
+            // Refresh the display
+            tableLayoutPanel1.Invalidate();
+        }
+
+
         private decimal totalAmount = 0; // Class-level variable to keep track of the total amount
 
         private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, string category, decimal price, int quantity)
