@@ -34,7 +34,6 @@ namespace _2ndMonitor
             this.Change = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -95,7 +94,7 @@ namespace _2ndMonitor
             this.Total.Enabled = false;
             this.Total.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Total.ForeColor = System.Drawing.Color.Black;
-            this.Total.Location = new System.Drawing.Point(355, 548);
+            this.Total.Location = new System.Drawing.Point(380, 548);
             this.Total.Name = "Total";
             this.Total.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.Total.Size = new System.Drawing.Size(295, 22);
@@ -109,7 +108,7 @@ namespace _2ndMonitor
             this.Balance.Enabled = false;
             this.Balance.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Balance.ForeColor = System.Drawing.Color.Black;
-            this.Balance.Location = new System.Drawing.Point(355, 609);
+            this.Balance.Location = new System.Drawing.Point(380, 609);
             this.Balance.Name = "Balance";
             this.Balance.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.Balance.Size = new System.Drawing.Size(295, 22);
@@ -124,7 +123,7 @@ namespace _2ndMonitor
             this.Change.Enabled = false;
             this.Change.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Change.ForeColor = System.Drawing.Color.Black;
-            this.Change.Location = new System.Drawing.Point(355, 665);
+            this.Change.Location = new System.Drawing.Point(380, 665);
             this.Change.Name = "Change";
             this.Change.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.Change.Size = new System.Drawing.Size(295, 22);
@@ -147,7 +146,7 @@ namespace _2ndMonitor
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 376F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 130F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 44F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 101F));
             this.tableLayoutPanel1.Location = new System.Drawing.Point(16, 8);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 10;
@@ -161,31 +160,8 @@ namespace _2ndMonitor
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(667, 376);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(667, 511);
             this.tableLayoutPanel1.TabIndex = 20;
-            // 
-            // tableLayoutPanel2
-            // 
-            this.tableLayoutPanel2.ColumnCount = 4;
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 376F));
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 130F));
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 44F));
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(16, 390);
-            this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 10;
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(667, 152);
-            this.tableLayoutPanel2.TabIndex = 21;
             // 
             // Form1
             // 
@@ -193,7 +169,6 @@ namespace _2ndMonitor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(1372, 705);
-            this.Controls.Add(this.tableLayoutPanel2);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.Balance);
@@ -224,7 +199,6 @@ namespace _2ndMonitor
         private System.Windows.Forms.TextBox Change;
         private System.Windows.Forms.Label label1;
         private TableLayoutPanel tableLayoutPanel1;
-        private TableLayoutPanel tableLayoutPanel2;
     }
 }
 

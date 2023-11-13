@@ -201,6 +201,8 @@ namespace _2ndMonitor
 
                             if (actionInformation == "AddSales")
                             {
+                                tableLayoutPanel1.Controls.Clear();
+
                                 // Loop to add empty rows up to the 7th row
                                 for (int row = 0; row < 8; row++)
                                 {
@@ -291,37 +293,64 @@ namespace _2ndMonitor
 
         private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, string category, decimal price, int quantity)
         {
-            int totalRows = tableLayoutPanel1.RowCount;
+            // Set the column style for the fourth column (index 3) for right alignment
+            if (tableLayoutPanel1.ColumnStyles.Count < 4)
+            {
+                // Adding extra columns if they do not exist
+                while (tableLayoutPanel1.ColumnStyles.Count < 4)
+                {
+                    tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+                }
+            }
+            tableLayoutPanel1.ColumnStyles[3] = new ColumnStyle(SizeType.AutoSize);
+
+            // Ensure the row count is sufficient
+            tableLayoutPanel1.RowCount = tableLayoutPanel1.RowCount + 1;
+            int totalRows = tableLayoutPanel1.RowCount - 1;
 
             // Function to create a new label with increased font size
-            Label CreateLabelWithIncreasedFontSize(string text)
+            Label CreateLabelWithIncreasedFontSize(string text, float scaleFactor = 1.30f, AnchorStyles anchor = AnchorStyles.Left | AnchorStyles.Top)
             {
                 var label = new Label
                 {
                     Text = text,
-                    Dock = DockStyle.Fill
+                    Dock = DockStyle.None,
+                    Anchor = anchor,
+                    AutoSize = true
                 };
-                label.Font = new Font(label.Font.Name, label.Font.Size * 1.30f, label.Font.Style); // Increase font size by 10%
+                label.Font = new Font(Label.DefaultFont.Name, Label.DefaultFont.Size * scaleFactor, Label.DefaultFont.Style);
                 return label;
             }
 
-            if (category == "ADD-ONS" || category == "OTHERS")
+            Label CreateLabelWithIncreasedFontSize2(string text, float scaleFactor = 1.00f, AnchorStyles anchor = AnchorStyles.Left | AnchorStyles.Top)
             {
-                // Add the item to tableLayoutPanel2
-                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
-                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
-                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
-                decimal amount = quantity * price; // Calculate the amount
-                tableLayoutPanel2.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+                var label = new Label
+                {
+                    Text = text,
+                    Dock = DockStyle.None,
+                    Anchor = anchor,
+                    AutoSize = true
+                };
+                label.Font = new Font(Label.DefaultFont.Name, Label.DefaultFont.Size * scaleFactor, Label.DefaultFont.Style);
+                return label;
             }
-            else
+
+            if ((category == "ADD-ONS" || category == "OTHERS") && price != 0)
+            {
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize2(itemDescription), 1, totalRows);
+                decimal amount = quantity * price; // Calculate the amount
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2"), 1.30f, AnchorStyles.Top | AnchorStyles.Right), 3, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 2, totalRows);
+            }
+            else if (price != 0)
             {
                 // Adding row values with increased font size to tableLayoutPanel1
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
-                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 3, totalRows);
                 decimal amount = quantity * price; // Calculate the amount
-                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2")), 2, totalRows); // Add the calculated amount
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2"), 1.30f, AnchorStyles.Top | AnchorStyles.Right), 3, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 2, totalRows);
             }
         }
 
