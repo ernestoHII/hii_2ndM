@@ -135,8 +135,9 @@ namespace _2ndMonitor
 
                         // Execute the command to establish the dependency
                         command.ExecuteReader();
-/*                        DisplayToTable();
-*/                    }
+                        /*                        DisplayToTable();
+                        */
+                    }
                 }
             }
             catch (SqlException ex)
@@ -267,10 +268,13 @@ namespace _2ndMonitor
                             {
 
                             }
-
                             else if (actionInformation == "DeleteSalesLine")
                             {
                                 // Code for DeleteSalesLine
+                            }
+                            else if (actionInformation == "DeleteSales")
+                            {
+                                tableLayoutPanel1.Controls.Clear();
                             }
                             else if (actionInformation == "TenderSales")
                             {
@@ -290,6 +294,7 @@ namespace _2ndMonitor
             }
         }
         //====================//====================//====================//====================//====================//====================//====================
+        private decimal totalAmount = 0; // Class-level variable to keep track of the total amount
 
         private void TableLayoutPanel1_Paint(object sender, EventArgs e, string itemDescription, string category, decimal price, int quantity)
         {
@@ -337,21 +342,24 @@ namespace _2ndMonitor
 
             if ((category == "ADD-ONS" || category == "OTHERS") && price != 0)
             {
+                // Create a label for itemId and add it to the first column
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize2(itemDescription), 1, totalRows);
                 decimal amount = quantity * price; // Calculate the amount
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2"), 1.30f, AnchorStyles.Top | AnchorStyles.Right), 3, totalRows);
-                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 2, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize($"@{price.ToString("F2")} /pc"), 2, totalRows);
+                totalAmount += amount; // Add the amount to the total
             }
             else if (price != 0)
             {
-                // Adding row values with increased font size to tableLayoutPanel1
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(quantity.ToString()), 0, totalRows);
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(itemDescription), 1, totalRows);
                 decimal amount = quantity * price; // Calculate the amount
                 tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(amount.ToString("F2"), 1.30f, AnchorStyles.Top | AnchorStyles.Right), 3, totalRows);
-                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize(price.ToString("F2")), 2, totalRows);
+                tableLayoutPanel1.Controls.Add(CreateLabelWithIncreasedFontSize($"@{price.ToString("F2")} /pc"), 2, totalRows);
+                totalAmount += amount; // Add the amount to the total
             }
+            Total.Text = $"Total: {totalAmount.ToString("F2")}";
         }
 
         private Label CreateLabelWithIncreasedFontSize(string text, int fontSize, bool bold)
