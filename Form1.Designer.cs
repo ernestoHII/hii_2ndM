@@ -30,7 +30,7 @@ namespace _2ndMonitor
             this.textBox6 = new System.Windows.Forms.TextBox();
             this.textBox8 = new System.Windows.Forms.TextBox();
             this.Total = new System.Windows.Forms.TextBox();
-            this.Balance = new System.Windows.Forms.TextBox();
+            this.Paid = new System.Windows.Forms.TextBox();
             this.Change = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -101,20 +101,20 @@ namespace _2ndMonitor
             this.Total.TabIndex = 15;
             this.Total.Text = "0.00";
             // 
-            // Balance
+            // Paid
             // 
-            this.Balance.BackColor = System.Drawing.Color.White;
-            this.Balance.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.Balance.Enabled = false;
-            this.Balance.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Balance.ForeColor = System.Drawing.Color.Black;
-            this.Balance.Location = new System.Drawing.Point(380, 609);
-            this.Balance.Name = "Balance";
-            this.Balance.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.Balance.Size = new System.Drawing.Size(295, 22);
-            this.Balance.TabIndex = 17;
-            this.Balance.Text = "0.00";
-            this.Balance.TextChanged += new System.EventHandler(this.Balance_TextChanged);
+            this.Paid.BackColor = System.Drawing.Color.White;
+            this.Paid.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.Paid.Enabled = false;
+            this.Paid.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Paid.ForeColor = System.Drawing.Color.Black;
+            this.Paid.Location = new System.Drawing.Point(380, 609);
+            this.Paid.Name = "Paid";
+            this.Paid.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.Paid.Size = new System.Drawing.Size(295, 22);
+            this.Paid.TabIndex = 17;
+            this.Paid.Text = "0.00";
+            this.Paid.TextChanged += new System.EventHandler(this.Balance_TextChanged);
             // 
             // Change
             // 
@@ -171,7 +171,7 @@ namespace _2ndMonitor
             this.ClientSize = new System.Drawing.Size(1372, 705);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.Balance);
+            this.Controls.Add(this.Paid);
             this.Controls.Add(this.Total);
             this.Controls.Add(this.Change);
             this.Controls.Add(this.textBox6);
@@ -195,7 +195,7 @@ namespace _2ndMonitor
         private System.Windows.Forms.TextBox textBox6;
         private System.Windows.Forms.TextBox textBox8;
         private System.Windows.Forms.TextBox Total;
-        private System.Windows.Forms.TextBox Balance;
+        private System.Windows.Forms.TextBox Paid;
         private System.Windows.Forms.TextBox Change;
         private System.Windows.Forms.Label label1;
         private TableLayoutPanel tableLayoutPanel1;

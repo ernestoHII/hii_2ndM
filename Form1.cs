@@ -9,6 +9,7 @@ using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using ImageSettingsGUI;
+using System.Data.SqlClient;
 
 namespace _2ndMonitor
 {
@@ -89,8 +90,17 @@ namespace _2ndMonitor
                 Environment.Exit(0);
             }
 
+            // Check if Service Broker is enabled
+            bool serviceBrokerEnabled = IsServiceBrokerEnabled();
+            if (!serviceBrokerEnabled)
+            {
+                MessageBox.Show("Service Broker is not enabled. The application will now exit.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(0);
+                return; // Ensures that the rest of the constructor code is not executed
+            }
             SetupSqlDependency();
             InitialFetchData();
+
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -113,9 +123,7 @@ namespace _2ndMonitor
         private void SetupSqlDependency()
         {
             // Start the SqlDependency listener.
-            string connectionString2 = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
-
-            SqlDependency.Start(connectionString2);
+            SqlDependency.Start(connectionString);
         }
         private void ImageSliderTimer_Tick(object sender, EventArgs e)
         {
@@ -142,8 +150,7 @@ namespace _2ndMonitor
         {
             try
             {
-                string connectionString2 = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
-                using (SqlConnection connection = new SqlConnection(connectionString2))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
                     using (SqlCommand command = new SqlCommand("SELECT FormInformation, ActionInformation FROM dbo.SysAuditTrail", connection))
@@ -172,8 +179,7 @@ namespace _2ndMonitor
         {
             try
             {
-                string connectionString2 = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
-                using (SqlConnection connection = new SqlConnection(connectionString2))
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
                     using (SqlCommand command = new SqlCommand("SELECT FormInformation, ActionInformation FROM dbo.SysAuditTrail", connection))
@@ -323,7 +329,20 @@ namespace _2ndMonitor
                             }
                             else if (actionInformation == "TenderSales")
                             {
-                                // Code for TenderSales
+                                JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
+                                if (jsonObject != null)
+                                {
+                                    // Extract the "TenderAmount" property from the JSON data
+                                    decimal? tenderAmount = jsonObject.Value<decimal?>("TenderAmount");
+                                    decimal? ChangeAmount = jsonObject.Value<decimal?>("ChangeAmount");
+                                    if (tenderAmount.HasValue)
+                                    {
+                                        Paid.Text = tenderAmount.Value.ToString("0.00");
+                                        Change.Text = ChangeAmount.HasValue ? ChangeAmount.Value.ToString("0.00") : "0.00";
+                                        Console.WriteLine(tenderAmount);
+                                        Console.WriteLine(ChangeAmount);
+                                    }
+                                }
                             }
                         }
                     }
@@ -575,8 +594,7 @@ namespace _2ndMonitor
             {
                 configWatcher.Dispose();
             }
-            string connectionString2 = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
-            SqlDependency.Stop(connectionString2);
+            SqlDependency.Stop(connectionString);
 
             base.Dispose(disposing);
         }
@@ -761,8 +779,46 @@ namespace _2ndMonitor
 
         }
 
+        private bool IsServiceBrokerEnabled()
+        {
+            string commandText = "SELECT is_broker_enabled FROM sys.databases WHERE name = 'easypos';";
+            bool isBrokerEnabled = false;
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(commandText, connection);
+
+                try
+                {
+                    connection.Open();
+                    object result = command.ExecuteScalar();
+
+                    if (result != null)
+                    {
+                        isBrokerEnabled = Convert.ToBoolean(result);
+                        Console.WriteLine("Service Broker enabled status: " + isBrokerEnabled);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Service Broker status check returned no results.");
+                    }
+                }
+                catch (SqlException ex)
+                {
+                    Console.WriteLine("SQL Error: " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex.Message);
+                }
+            }
+
+            return isBrokerEnabled;
+        }
+
+
     }
-}
+}   
 
 namespace ImageSettingsGUI
 {
