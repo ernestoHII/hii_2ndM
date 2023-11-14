@@ -4,12 +4,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Diagnostics;
 using ImageSettingsGUI;
-using System.Data.SqlClient;
 
 namespace _2ndMonitor
 {
@@ -83,11 +82,30 @@ namespace _2ndMonitor
 
                 pictureBox1.Image = Image.FromFile(imagePath);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // This will now tell you exactly what went wrong
-                MessageBox.Show("Error loading image1: " + ex.Message);
-                Environment.Exit(0);
+/*                MessageBox.Show("Error loading image1: " + ex.Message);
+                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);*/
+/*                ShowImageSettingsForm();
+*/                // Create a new bitmap.
+                int width = 800;
+                int height = 600;
+                using (Bitmap bmp = new Bitmap(width, height))
+                {
+                    // Create graphics object for alteration.
+                    using (Graphics g = Graphics.FromImage(bmp))
+                    {
+                        // Draw whatever you want here. For example, a line:
+                        g.DrawLine(Pens.Red, 0, 0, width, height);
+
+                        // And/or draw text:
+                        g.DrawString("Hello, World!", new Font("Arial", 40), Brushes.Blue, new PointF(200, 200));
+                    }
+
+                    // Save the bitmap as a PNG file.
+                    bmp.Save("test.png", ImageFormat.Png);
+                }
             }
 
             // Check if Service Broker is enabled
@@ -98,6 +116,7 @@ namespace _2ndMonitor
                 Environment.Exit(0);
                 return; // Ensures that the rest of the constructor code is not executed
             }
+            ShowImageSettingsForm();
             SetupSqlDependency();
             InitialFetchData();
 
@@ -142,6 +161,8 @@ namespace _2ndMonitor
             {
                 // Handle case where image is not found or list is empty
                 // Consider setting a default image or providing a suitable message/notification
+                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowImageSettingsForm();
             }
         }
 
@@ -470,8 +491,6 @@ namespace _2ndMonitor
             // Refresh the display
             tableLayoutPanel1.Invalidate();
         }
-
-
 
         private decimal totalAmount = 0; // Class-level variable to keep track of the total amount
 
