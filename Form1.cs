@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using ImageSettingsGUI;
 
 namespace _2ndMonitor
 {
@@ -91,6 +92,24 @@ namespace _2ndMonitor
             SetupSqlDependency();
             InitialFetchData();
         }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.F12)
+            {
+                ShowImageSettingsForm();
+                return true; // Indicate that you've handled this key
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void ShowImageSettingsForm()
+        {
+            ImageSettingsForm settingsForm = new ImageSettingsForm();
+            settingsForm.ShowDialog(); // or use .Show() for a non-modal form
+        }
+
         private void SetupSqlDependency()
         {
             // Start the SqlDependency listener.
@@ -741,5 +760,141 @@ namespace _2ndMonitor
         {
 
         }
+
+    }
+}
+
+namespace ImageSettingsGUI
+{
+    public class ImageSettingsForm : Form
+    {
+        private ListBox imagePathsListBox;
+        private Button addButton;
+        private Button removeButton;
+        private NumericUpDown timerIntervalNumericUpDown;
+        private Button saveButton;
+        private OpenFileDialog openFileDialog;
+
+        public ImageSettingsForm()
+        {
+            InitializeComponents();
+            LoadConfig();
+        }
+
+        private void InitializeComponents()
+        {
+            // List box for displaying image paths
+            imagePathsListBox = new ListBox { Left = 20, Top = 20, Width = 200, Height = 200 };
+            Controls.Add(imagePathsListBox);
+
+            // Add button to add image paths
+            addButton = new Button { Text = "Add", Left = 230, Width = 100, Top = 20 };
+            addButton.Click += AddButton_Click;
+            Controls.Add(addButton);
+
+            // Remove button to remove selected image path
+            removeButton = new Button { Text = "Remove", Left = 230, Width = 100, Top = 50 };
+            removeButton.Click += RemoveButton_Click;
+            Controls.Add(removeButton);
+
+            // Numeric up-down for timer interval
+            timerIntervalNumericUpDown = new NumericUpDown { Left = 20, Top = 230, Width = 100 };
+            timerIntervalNumericUpDown.Minimum = 1;
+            timerIntervalNumericUpDown.Maximum = 60; // example range from 1 to 60 seconds
+            Controls.Add(timerIntervalNumericUpDown);
+
+            // Save button to save settings
+            saveButton = new Button { Text = "Save", Left = 230, Width = 100, Top = 80 };
+            saveButton.Click += SaveButton_Click;
+            Controls.Add(saveButton);
+
+            // File dialog for selecting images
+            openFileDialog = new OpenFileDialog { Multiselect = true, Filter = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg" };
+
+            // Form settings
+            Text = "Image Settings";
+            Size = new System.Drawing.Size(350, 300);
+        }
+
+        private void LoadConfig()
+        {
+            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
+            if (File.Exists(configFilePath))
+            {
+                string[] lines = File.ReadAllLines(configFilePath);
+                bool isReadingPaths = false;
+
+                foreach (string line in lines)
+                {
+                    if (line.StartsWith("ImagePaths:"))
+                    {
+                        isReadingPaths = true;
+                        continue;
+                    }
+
+                    if (line.StartsWith("TimerIntervalSeconds:"))
+                    {
+                        isReadingPaths = false;
+                        if (int.TryParse(line.Replace("TimerIntervalSeconds:", "").Trim(), out int intervalSeconds))
+                        {
+                            timerIntervalNumericUpDown.Value = intervalSeconds;
+                        }
+                        continue;
+                    }
+
+                    if (isReadingPaths)
+                    {
+                        imagePathsListBox.Items.Add(line.Trim());
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Config file not found.");
+            }
+        }
+
+        private void AddButton_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                foreach (var file in openFileDialog.FileNames)
+                {
+                    imagePathsListBox.Items.Add(file);
+                }
+            }
+        }
+
+        private void RemoveButton_Click(object sender, EventArgs e)
+        {
+            var selectedItem = imagePathsListBox.SelectedItem;
+            if (selectedItem != null)
+            {
+                imagePathsListBox.Items.Remove(selectedItem);
+            }
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            // ... existing code for SaveButton_Click ...
+
+            // Additional logic to save the current settings to config.txt
+            SaveConfig();
+        }
+
+        private void SaveConfig()
+        {
+            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
+            using (StreamWriter writer = new StreamWriter(configFilePath))
+            {
+                writer.WriteLine("ImagePaths:");
+                foreach (var item in imagePathsListBox.Items)
+                {
+                    writer.WriteLine(item.ToString());
+                }
+                writer.WriteLine($"TimerIntervalSeconds: {timerIntervalNumericUpDown.Value}");
+            }
+        }
+
     }
 }
