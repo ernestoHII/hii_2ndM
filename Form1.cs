@@ -18,9 +18,11 @@ namespace _2ndMonitor
         private Timer imageSliderTimer;
         private List<string> imagePaths;  // List of paths to your images
         private int currentImageIndex = 0;
-        private string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+/*        private string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
+*/        
 
-        public Form1()
+    public Form1()
         {
             InitializeComponent();
             ReadImagePathsFromConfig();
@@ -36,13 +38,15 @@ namespace _2ndMonitor
                 pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
             }
 
+            // Read the configuration file
+            bool enableSecondMonitorFeature = ReadConfig();
+
             // Get the screens available
             Screen[] screens = Screen.AllScreens;
 
-            // Check if there is a second monitor
-            if (screens.Length > 1)
+            // Check if the second monitor feature is enabled and if there is a second monitor
+            if (enableSecondMonitorFeature && screens.Length > 1)
             {
-                // Print a message to the console indicating a second monitor is detected
                 Console.WriteLine("A second monitor is detected.");
 
                 // Set the window's location to the second monitor (top-left corner)
@@ -55,9 +59,8 @@ namespace _2ndMonitor
             }
             else
             {
-                // If there is only one monitor, set the desired form size
                 this.Size = new System.Drawing.Size(1366, 768);
-                Console.WriteLine("BUG");
+                Console.WriteLine("Second monitor feature is disabled or only one monitor detected.");
             }
 
             try
@@ -85,10 +88,10 @@ namespace _2ndMonitor
             catch (Exception)
             {
                 // This will now tell you exactly what went wrong
-/*                MessageBox.Show("Error loading image1: " + ex.Message);
-                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);*/
-/*                ShowImageSettingsForm();
-*/                // Create a new bitmap.
+                /*                MessageBox.Show("Error loading image1: " + ex.Message);
+                                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);*/
+                /*                ShowImageSettingsForm();
+                */                // Create a new bitmap.
                 int width = 800;
                 int height = 600;
                 using (Bitmap bmp = new Bitmap(width, height))
@@ -112,9 +115,14 @@ namespace _2ndMonitor
             bool serviceBrokerEnabled = IsServiceBrokerEnabled();
             if (!serviceBrokerEnabled)
             {
+                Console.WriteLine(serviceBrokerEnabled);
                 MessageBox.Show("Service Broker is not enabled. The application will now exit.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
                 return; // Ensures that the rest of the constructor code is not executed
+            }
+            else
+            {
+                Console.WriteLine("Service Broker is enabled.", serviceBrokerEnabled);
             }
             ShowImageSettingsForm();
             SetupSqlDependency();
@@ -748,6 +756,29 @@ namespace _2ndMonitor
                 // Handle exceptions if any other error occurs (optional)
             }
         }
+
+        private bool ReadConfig()
+        {
+            try
+            {
+                string configText = File.ReadAllText("config.txt");
+                // Assuming the config file contains a line like "EnableSecondMonitor=true"
+                var configLines = configText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                foreach (var line in configLines)
+                {
+                    if (line.StartsWith("EnableSecondMonitor="))
+                    {
+                        return bool.Parse(line.Split('=')[1]);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading config file: " + ex.Message);
+            }
+            return false; // Default to false if the setting is not found or any error occurs
+        }
+
         private void SetupConfigFileWatcher()
         {
             string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
@@ -834,10 +865,8 @@ namespace _2ndMonitor
 
             return isBrokerEnabled;
         }
-
-
     }
-}   
+}
 
 namespace ImageSettingsGUI
 {
