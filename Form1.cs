@@ -19,12 +19,24 @@ namespace _2ndMonitor
         private List<string> imagePaths;  // List of paths to your images
         private int currentImageIndex = 0;
         private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
-/*        private string connectionString = "Server=DESKTOP-JDQGAO5;Database=easypos;User Id=notifman;Password=root1234;";
-*/        
 
-    public Form1()
+        public Form1()
         {
             InitializeComponent();
+
+            // Make sure client has permissions 
+            try
+            {
+                SqlClientPermission perm = new SqlClientPermission(System.Security.Permissions.PermissionState.Unrestricted);
+                perm.Demand();
+            }
+            catch
+            {
+                throw new ApplicationException("No permission");
+            }
+
+
+            this.Load += new EventHandler(Form1_Load);
             ReadImagePathsFromConfig();
 
             imageSliderTimer = new Timer();
@@ -36,31 +48,6 @@ namespace _2ndMonitor
             if (imagePaths.Count > 0)
             {
                 pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
-            }
-
-            // Read the configuration file
-            bool enableSecondMonitorFeature = ReadConfig();
-
-            // Get the screens available
-            Screen[] screens = Screen.AllScreens;
-
-            // Check if the second monitor feature is enabled and if there is a second monitor
-            if (enableSecondMonitorFeature && screens.Length > 1)
-            {
-                Console.WriteLine("A second monitor is detected.");
-
-                // Set the window's location to the second monitor (top-left corner)
-                Rectangle secondScreenBounds = screens[1].Bounds;
-                this.StartPosition = FormStartPosition.Manual;
-                this.Location = new Point(secondScreenBounds.Left, secondScreenBounds.Top);
-
-                // Set the window's size to 1366x768
-                this.Size = new System.Drawing.Size(1366, 768);
-            }
-            else
-            {
-                this.Size = new System.Drawing.Size(1366, 768);
-                Console.WriteLine("Second monitor feature is disabled or only one monitor detected.");
             }
 
             try
@@ -128,6 +115,29 @@ namespace _2ndMonitor
             SetupSqlDependency();
             InitialFetchData();
 
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        { 
+            // Read the configuration file
+            bool enableSecondMonitorFeature = ReadConfig();
+
+            // Get the screens available
+            Screen[] screens = Screen.AllScreens;
+
+            // Check if the second monitor feature is enabled and if there is a second monitor
+            if (enableSecondMonitorFeature && screens.Length > 1)
+            {
+                Console.WriteLine("A second monitor is detected.");
+                Rectangle secondScreenBounds = screens[1].Bounds;
+                this.StartPosition = FormStartPosition.Manual;
+                this.Location = new Point(secondScreenBounds.Left, secondScreenBounds.Top);
+                this.Size = new System.Drawing.Size(1366, 768);
+            }
+            else
+            {
+                this.Size = new System.Drawing.Size(1366, 768);
+                Console.WriteLine("Second monitor feature is disabled or only one monitor detected.");
+            }
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
