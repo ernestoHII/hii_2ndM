@@ -20,30 +20,42 @@ namespace _2ndMonitor
         private int currentImageIndex = 0;
         private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
 
+        /*        private string connectionString = "Server=localhost;Database=easypos;User Id=sa;Password=easyfis;";
+        */
         public Form1()
         {
+            CheckConnection();
             InitializeComponent();
-
-            // Make sure client has permissions 
-            try
-            {
-                SqlClientPermission perm = new SqlClientPermission(System.Security.Permissions.PermissionState.Unrestricted);
-                perm.Demand();
-            }
-            catch
-            {
-                throw new ApplicationException("No permission");
-            }
-
-
+            CheckPermission();
             this.Load += new EventHandler(Form1_Load);
             ReadImagePathsFromConfig();
-
             imageSliderTimer = new Timer();
             imageSliderTimer.Tick += ImageSliderTimer_Tick;
             SetTimerIntervalFromConfig();
             imageSliderTimer.Start();
-
+            CheckImage();
+            ShowImageSettingsForm();
+            SetupSqlDependency();
+            InitialFetchData();
+        }
+        private void CheckServiceBroker()
+        {
+            // Check if Service Broker is enabled
+            bool serviceBrokerEnabled = IsServiceBrokerEnabled();
+            if (!serviceBrokerEnabled)
+            {
+                Console.WriteLine(serviceBrokerEnabled);
+                MessageBox.Show("Service Broker is not enabled. The application will now exit.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(0);
+                return; // Ensures that the rest of the constructor code is not executed
+            }
+            else
+            {
+                Console.WriteLine("Service Broker is enabled.", serviceBrokerEnabled);
+            }
+        }
+        private void CheckImage()
+        {
             // Set the first image if available
             if (imagePaths.Count > 0)
             {
@@ -97,25 +109,41 @@ namespace _2ndMonitor
                     bmp.Save("test.png", ImageFormat.Png);
                 }
             }
-
-            // Check if Service Broker is enabled
-            bool serviceBrokerEnabled = IsServiceBrokerEnabled();
-            if (!serviceBrokerEnabled)
-            {
-                Console.WriteLine(serviceBrokerEnabled);
-                MessageBox.Show("Service Broker is not enabled. The application will now exit.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Environment.Exit(0);
-                return; // Ensures that the rest of the constructor code is not executed
-            }
-            else
-            {
-                Console.WriteLine("Service Broker is enabled.", serviceBrokerEnabled);
-            }
-            ShowImageSettingsForm();
-            SetupSqlDependency();
-            InitialFetchData();
-
         }
+        private void CheckPermission()
+        {
+            // Make sure client has permissions 
+            try
+            {
+                SqlClientPermission perm = new SqlClientPermission(System.Security.Permissions.PermissionState.Unrestricted);
+                perm.Demand();
+            }
+            catch
+            {
+                throw new ApplicationException("No permission");
+            }
+        }
+        private void CheckConnection()
+        {
+
+            // Attempt to open a connection to the database
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open(); // Try to open the connection
+                                 // If successful, the connection will be closed when exiting the using block
+                }
+
+                // Other code that should run after successful connection...
+            }
+            catch (SqlException ex)
+            {
+                MessageBox.Show($"Failed to connect to the database: {ex.Message}", "Database Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(1); // Exit the application if the connection is not successful
+            }
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         { 
             // Read the configuration file
@@ -888,6 +916,10 @@ namespace ImageSettingsGUI
         private NumericUpDown timerIntervalNumericUpDown;
         private Button saveButton;
         private OpenFileDialog openFileDialog;
+        private TextBox serverTextBox;
+        private TextBox databaseTextBox;
+        private TextBox userIdTextBox;
+        private TextBox passwordTextBox;
 
         public ImageSettingsForm()
         {
@@ -922,12 +954,32 @@ namespace ImageSettingsGUI
             saveButton.Click += SaveButton_Click;
             Controls.Add(saveButton);
 
+            // Server TextBox
+            serverTextBox = new TextBox { Left = 20, Top = 250, Width = 200 };
+            Controls.Add(serverTextBox);
+
+            // Database TextBox
+            databaseTextBox = new TextBox { Left = 20, Top = 280, Width = 200 };
+            Controls.Add(databaseTextBox);
+
+            // User Id TextBox
+            userIdTextBox = new TextBox { Left = 20, Top = 310, Width = 200 };
+            Controls.Add(userIdTextBox);
+
+            // Password TextBox
+            passwordTextBox = new TextBox { Left = 20, Top = 340, Width = 200 };
+            passwordTextBox.UseSystemPasswordChar = true; // To hide password input
+            Controls.Add(passwordTextBox);
+
+            // Adjust the size of the form to accommodate new fields
+            Size = new System.Drawing.Size(350, 400);
             // File dialog for selecting images
             openFileDialog = new OpenFileDialog { Multiselect = true, Filter = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg" };
 
             // Form settings
             Text = "Image Settings";
             Size = new System.Drawing.Size(350, 300);
+
         }
 
         private void LoadConfig()
