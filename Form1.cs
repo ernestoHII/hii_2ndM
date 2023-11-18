@@ -18,7 +18,11 @@ namespace _2ndMonitor
         private Timer imageSliderTimer;
         private List<string> imagePaths;  // List of paths to your images
         private int currentImageIndex = 0;
-        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+/*        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+*/
+/*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQLEXPRESS;Database=easypos;User Id=notifman;Password=root1234;";
+*/
+        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
 
         /*        private string connectionString = "Server=localhost;Database=easypos;User Id=sa;Password=easyfis;";
         */
@@ -27,17 +31,24 @@ namespace _2ndMonitor
             CheckConnection();
             InitializeComponent();
             CheckPermission();
+            CheckServiceBroker();
             this.Load += new EventHandler(Form1_Load);
-            ReadImagePathsFromConfig();
-            imageSliderTimer = new Timer();
-            imageSliderTimer.Tick += ImageSliderTimer_Tick;
-            SetTimerIntervalFromConfig();
-            imageSliderTimer.Start();
-            CheckImage();
+            InitializeImageSlider();
             ShowImageSettingsForm();
             SetupSqlDependency();
             InitialFetchData();
         }
+
+        private void InitializeImageSlider()
+        {
+            ReadImagePathsFromConfig();
+            imageSliderTimer = new Timer();
+            imageSliderTimer.Tick += ImageSliderTimer_Tick;
+            SetTimerIntervalFromConfig(); // This function should set imageSliderTimer.Interval
+            imageSliderTimer.Start();
+            CheckImage();
+        }
+
         private void CheckServiceBroker()
         {
             // Check if Service Broker is enabled
@@ -56,60 +67,59 @@ namespace _2ndMonitor
         }
         private void CheckImage()
         {
-            // Set the first image if available
-            if (imagePaths.Count > 0)
-            {
-                pictureBox1.Image = Image.FromFile(imagePaths[currentImageIndex]);
-            }
-
             try
             {
-                if (pictureBox1 == null)
-                {
-                    throw new InvalidOperationException("pictureBox1 is not initialized.");
-                }
+                string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                string[] imageFiles = Directory.GetFiles(appDirectory, "*.png"); // You can add more formats if needed
 
-                if (imagePaths == null || imagePaths.Count == 0)
+                if (imageFiles.Length == 0)
                 {
-                    throw new InvalidOperationException("No image paths available.");
-                }
+                    // If no images in the application directory, try the working directory
+                    string workingDirectory = Environment.CurrentDirectory;
+                    imageFiles = Directory.GetFiles(workingDirectory, "*.png"); // Search for PNG images in the working directory
 
-                currentImageIndex = 0;
-                var imagePath = imagePaths[currentImageIndex];
-
-                if (!File.Exists(imagePath))
-                {
-                    throw new FileNotFoundException("The image file was not found.", imagePath);
-                }
-
-                pictureBox1.Image = Image.FromFile(imagePath);
-            }
-            catch (Exception)
-            {
-                // This will now tell you exactly what went wrong
-                /*                MessageBox.Show("Error loading image1: " + ex.Message);
-                                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);*/
-                /*                ShowImageSettingsForm();
-                */                // Create a new bitmap.
-                int width = 800;
-                int height = 600;
-                using (Bitmap bmp = new Bitmap(width, height))
-                {
-                    // Create graphics object for alteration.
-                    using (Graphics g = Graphics.FromImage(bmp))
+                    if (imageFiles.Length == 0)
                     {
-                        // Draw whatever you want here. For example, a line:
-                        g.DrawLine(Pens.Red, 0, 0, width, height);
-
-                        // And/or draw text:
-                        g.DrawString("Hello, World!", new Font("Arial", 40), Brushes.Blue, new PointF(200, 200));
+                        // If no images in the working directory either, throw an exception
+                        throw new FileNotFoundException("No PNG images found in the application or working directory.");
                     }
-
-                    // Save the bitmap as a PNG file.
-                    bmp.Save("test.png", ImageFormat.Png);
                 }
+
+                pictureBox1.Image = Image.FromFile(imageFiles[0]);
+            }
+            catch (FileNotFoundException fnfEx)
+            {
+                LogError("File not found: " + fnfEx.Message);
+                ShowFallbackImage();
+            }
+            catch (Exception ex)
+            {
+                LogError("Unexpected error: " + ex.Message);
+                ShowFallbackImage();
             }
         }
+
+        private void LogError(string message)
+        {
+            // Implement logging logic here (e.g., write to a file or console)
+            Console.WriteLine(message); // Example: logging to console
+        }
+
+        private void ShowFallbackImage()
+        {
+            int width = 800;
+            int height = 600;
+            using (Bitmap bmp = new Bitmap(width, height))
+            {
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.DrawLine(Pens.Red, 0, 0, width, height);
+                    g.DrawString("No Image Found", new Font("Arial", 40), Brushes.Blue, new PointF(200, 200));
+                }
+                pictureBox1.Image = bmp; // Display the fallback image in the picture box
+            }
+        }
+
         private void CheckPermission()
         {
             // Make sure client has permissions 
@@ -207,8 +217,7 @@ namespace _2ndMonitor
             {
                 // Handle case where image is not found or list is empty
                 // Consider setting a default image or providing a suitable message/notification
-                MessageBox.Show("Image is not found or list is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                ShowImageSettingsForm();
+                MessageBox.Show("Image is not found or list is empty.", "Error2", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -222,14 +231,9 @@ namespace _2ndMonitor
                     connection.Open();
                     using (SqlCommand command = new SqlCommand("SELECT FormInformation, ActionInformation FROM dbo.SysAuditTrail", connection))
                     {
-                        // Setup the SQL dependency
                         var dependency = new SqlDependency(command);
                         dependency.OnChange += new OnChangeEventHandler(OnDataChanged);
-
-                        // Execute the command to establish the dependency
                         command.ExecuteReader();
-                        /*                        DisplayToTable();
-                        */
                     }
                 }
             }
@@ -295,6 +299,8 @@ namespace _2ndMonitor
 
                             if (actionInformation == "AddSales")
                             {
+                                totalAmount = 0; // Reset the totalAmount
+                                Total.Text = $"Total: {totalAmount.ToString("F2")}"; // Update the Total label
                                 tableLayoutPanel1.Controls.Clear();
 
                                 // Loop to add empty rows up to the 7th row
@@ -392,6 +398,8 @@ namespace _2ndMonitor
 
                             else if (actionInformation == "DeleteSales")
                             {
+                                totalAmount = 0; // Reset the totalAmount
+                                Total.Text = $"Total: {totalAmount.ToString("F2")}"; // Update the Total label
                                 tableLayoutPanel1.Controls.Clear();
                             }
                             else if (actionInformation == "TenderSales")
@@ -731,24 +739,37 @@ namespace _2ndMonitor
                             continue;
                         }
 
-                        if (isReadingPaths)
+                        if (isReadingPaths && !string.IsNullOrWhiteSpace(line.Trim()))
                         {
                             // Add image paths and print them for debugging
                             imagePaths.Add(line.Trim());
                             Console.WriteLine("Image path read from config: " + line.Trim()); // Print each path for debugging
                         }
                     }
-
-                    // Rest of your code to use imagePaths and intervalSeconds
                 }
 
-                // Initialize the timer with the interval read from the config file
-                imageSliderTimer = new Timer();
-                imageSliderTimer.Interval = intervalSeconds * 1000; // Convert to milliseconds
+                // If no image paths were added, use 'test.png' from the working directory
+                if (imagePaths.Count == 0)
+                {
+                    string workingDirectory = Environment.CurrentDirectory;
+                    string defaultImagePath = Path.Combine(workingDirectory, "test.png");
+                    if (File.Exists(defaultImagePath))
+                    {
+                        imagePaths.Add(defaultImagePath);
+                    }
+                    else
+                    {
+                        throw new FileNotFoundException("Default image 'test.png' not found in the working directory.");
+                    }
+                }
+
+                // Initialize and start the timer with the interval read from the config file
+                imageSliderTimer = new Timer
+                {
+                    Interval = intervalSeconds * 1000 // Convert to milliseconds
+                };
                 imageSliderTimer.Tick += ImageSliderTimer_Tick;
                 imageSliderTimer.Start();
-
-                // Now you can safely use imageSliderTimer and imagePaths
             }
             catch (Exception ex)
             {
@@ -757,6 +778,8 @@ namespace _2ndMonitor
                 imagePaths = new List<string>(); // Default image paths
             }
         }
+
+
         private void SetTimerIntervalFromConfig()
         {
             try
