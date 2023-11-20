@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Data;
@@ -169,6 +171,26 @@ namespace _2ndMonitor
             // Get the screens available
             Screen[] screens = Screen.AllScreens;
 
+            // Create a message to display the information
+            string message = "enableSecondMonitorFeature is set to: " + enableSecondMonitorFeature + "\n";
+
+            if (screens.Length > 0)
+            {
+                message += "Number of screens detected: " + screens.Length + "\n";
+
+                foreach (Screen screen in screens)
+                {
+                    message += "Screen " + screen.DeviceName + ": " + screen.Bounds.Width + "x" + screen.Bounds.Height + "\n";
+                }
+            }
+            else
+            {
+                message += "No screens detected.";
+            }
+
+            // Show the message box with the information
+            // MessageBox.Show(message);
+
             // Check if the second monitor feature is enabled and if there is a second monitor
             if (enableSecondMonitorFeature && screens.Length > 1)
             {
@@ -177,12 +199,115 @@ namespace _2ndMonitor
                 this.StartPosition = FormStartPosition.Manual;
                 this.Location = new Point(secondScreenBounds.Left, secondScreenBounds.Top);
                 this.Size = new System.Drawing.Size(1366, 768);
+
+                // Check if "EasyPOS" is running
+                if (IsEasyPOSRunning())
+                {
+                    // Move the "EasyPOS" window to the second screen (if it exists)
+                    MoveEasyPOSWindowToSecondScreen();
+                }
+                else
+                {
+                    // Can't Move the "EasyPOS" window to the second screen (coz it doesn't exists)
+                    MessageBox.Show("EasyPOS GUI was not found running.");
+                }
             }
             else
             {
+                // Check if "EasyPOS" is running
+                if (IsEasyPOSRunning())
+                {
+                    // Move the "EasyPOS" window to the second screen (if it exists)
+                    MoveEasyPOSWindowToSecondScreen();
+                }
+                else
+                {
+                    // Can't Move the "EasyPOS" window to the second screen (coz it doesn't exists)
+                    MessageBox.Show("EasyPOS GUI was not found running.");
+                }
+                Rectangle secondScreenBounds = screens[0].Bounds;
+                this.StartPosition = FormStartPosition.Manual;
+                this.Location = new Point(secondScreenBounds.Left, secondScreenBounds.Top);
                 this.Size = new System.Drawing.Size(1366, 768);
                 Console.WriteLine("Second monitor feature is disabled or only one monitor detected.");
             }
+        }
+
+        private bool IsEasyPOSRunning()
+        {
+            string processName = "EasyPOS"; // Change this to the actual process name of EasyPOS
+            Process[] processes = Process.GetProcessesByName(processName);
+            return processes.Length > 0;
+        }
+
+        private void MoveEasyPOSWindowToSecondScreen()
+        {
+            string processName = "EasyPOS"; // Change this to the actual process name of EasyPOS
+            Process[] processes = Process.GetProcessesByName(processName);
+
+            if (processes.Length > 0)
+            {
+                IntPtr handle = processes[0].MainWindowHandle;
+                Screen[] screens = Screen.AllScreens;
+
+                if (screens.Length > 1)
+                {
+                    Rectangle secondScreenBounds = screens[1].Bounds;
+
+                    // Check if the window is maximized
+                    if (IsMaximized(handle))
+                    {
+                        // Restore the window to a normal state
+                        ShowWindow(handle, SW_RESTORE);
+                    }
+
+                    // Move the window to the second screen
+                    MoveWindow(handle, secondScreenBounds.Left, secondScreenBounds.Top, secondScreenBounds.Width, secondScreenBounds.Height, true);
+
+                    // Maximize the window again (if it was maximized)
+                    if (IsMaximized(handle))
+                    {
+                        ShowWindow(handle, SW_MAXIMIZE);
+                    }
+                }
+            }
+        }
+
+        // Constants for ShowWindow method
+        private const int SW_RESTORE = 9;
+        private const int SW_MAXIMIZE = 3;
+
+        // P/Invoke methods
+        [DllImport("user32.dll")]
+        public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        // Function to check if a window is maximized
+        private bool IsMaximized(IntPtr hWnd)
+        {
+            WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
+            placement.length = Marshal.SizeOf(placement);
+            GetWindowPlacement(hWnd, ref placement);
+            return placement.showCmd == SW_MAXIMIZE;
+        }
+
+        // P/Invoke method to get window placement information
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+        // Structure for WINDOWPLACEMENT
+        [Serializable]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public Point ptMinPosition;
+            public Point ptMaxPosition;
+            public Rectangle rcNormalPosition;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -304,7 +429,7 @@ namespace _2ndMonitor
                             string actionInformation = dataTable.Rows[0]["ActionInformation"].ToString();
                             string recordInformation = dataTable.Rows[0]["RecordInformation"].ToString();
 
-                            if (actionInformation == "AddSales")
+                            if (actionInformation == "AddSales" || recordInformation == "AddSales")
                             {
                                 totalAmount = 0; // Reset the totalAmount
                                 Total.Text = $"Total: {totalAmount.ToString("F2")}"; // Update the Total label
@@ -324,7 +449,7 @@ namespace _2ndMonitor
                                 tableLayoutPanel1.Controls.Add(label, 1, 8);
                             }
 
-                            else if (actionInformation == "AddSalesLine")
+                            else if (actionInformation == "AddSalesLine" || recordInformation == "AddSalesLine")
                             {
                                 // Remove existing labels in the second column (index 1) and rows 0 to 7
                                 for (int row = 0; row < 9; row++)
@@ -367,7 +492,7 @@ namespace _2ndMonitor
                                     }
                                 }
                             }
-                            else if (actionInformation == "UpdateSalesLine")
+                            else if (actionInformation == "UpdateSalesLine" || recordInformation == "UpdateSalesLine")
                             {
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
                                 if (jsonObject != null)
@@ -390,7 +515,7 @@ namespace _2ndMonitor
                                 }
                             }
 
-                            else if (actionInformation == "DeleteSalesLine")
+                            else if (actionInformation == "DeleteSalesLine" || recordInformation == "DeleteSalesLine")
                             {
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(recordInformation);
                                 if (jsonObject != null)
@@ -403,13 +528,13 @@ namespace _2ndMonitor
                                 }
                             }
 
-                            else if (actionInformation == "DeleteSales")
+                            else if (actionInformation == "DeleteSales" || recordInformation == "DeleteSalesLine")
                             {
                                 totalAmount = 0; // Reset the totalAmount
                                 Total.Text = $"Total: {totalAmount.ToString("F2")}"; // Update the Total label
                                 tableLayoutPanel1.Controls.Clear();
                             }
-                            else if (actionInformation == "TenderSales")
+                            else if (actionInformation == "TenderSales" || recordInformation == "TenderSales")
                             {
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
                                 if (jsonObject != null)
@@ -836,7 +961,7 @@ namespace _2ndMonitor
                 {
                     if (line.StartsWith("EnableSecondMonitor="))
                     {
-                        return bool.Parse(line.Split('=')[1]);
+                        return bool.Parse(line.Split('=')[1]);                        
                     }
                 }
             }
@@ -847,20 +972,6 @@ namespace _2ndMonitor
             return false; // Default to false if the setting is not found or any error occurs
         }
 
-        private void SetupConfigFileWatcher()
-        {
-            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
-
-            configWatcher = new FileSystemWatcher
-            {
-                Path = Path.GetDirectoryName(configFilePath),
-                Filter = Path.GetFileName(configFilePath),
-                NotifyFilter = NotifyFilters.LastWrite
-            };
-
-            configWatcher.Changed += OnConfigFileChanged;
-            configWatcher.EnableRaisingEvents = true;
-        }
 
         private void OnConfigFileChanged(object source, FileSystemEventArgs e)
         {
