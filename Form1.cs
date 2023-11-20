@@ -18,14 +18,20 @@ namespace _2ndMonitor
         private Timer imageSliderTimer;
         private List<string> imagePaths;  // List of paths to your images
         private int currentImageIndex = 0;
-/*        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
-*/
-/*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQLEXPRESS;Database=easypos;User Id=notifman;Password=root1234;";
-*/
-        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
-
-        /*        private string connectionString = "Server=localhost;Database=easypos;User Id=sa;Password=easyfis;";
+        /*        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
         */
+/*        private string connectionString = "Server=DESKTOP-JDQGAO5\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
+*/
+
+        /*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQLEXPRESS;Database=easypos;User Id=notifman;Password=root1234;";
+        */
+        /*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
+        */
+        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+
+/*        private string connectionString = "Server=localhost;Database=easypos;User Id=sa;Password=easyfis;";
+*/
+
         public Form1()
         {
             CheckConnection();
@@ -34,7 +40,8 @@ namespace _2ndMonitor
             CheckServiceBroker();
             this.Load += new EventHandler(Form1_Load);
             InitializeImageSlider();
-            ShowImageSettingsForm();
+/*            ShowImageSettingsForm();
+*/
             SetupSqlDependency();
             InitialFetchData();
         }
@@ -155,7 +162,7 @@ namespace _2ndMonitor
         }
 
         private void Form1_Load(object sender, EventArgs e)
-        { 
+        {
             // Read the configuration file
             bool enableSecondMonitorFeature = ReadConfig();
 
@@ -977,32 +984,13 @@ namespace ImageSettingsGUI
             saveButton.Click += SaveButton_Click;
             Controls.Add(saveButton);
 
-            // Server TextBox
-            serverTextBox = new TextBox { Left = 20, Top = 250, Width = 200 };
-            Controls.Add(serverTextBox);
-
-            // Database TextBox
-            databaseTextBox = new TextBox { Left = 20, Top = 280, Width = 200 };
-            Controls.Add(databaseTextBox);
-
-            // User Id TextBox
-            userIdTextBox = new TextBox { Left = 20, Top = 310, Width = 200 };
-            Controls.Add(userIdTextBox);
-
-            // Password TextBox
-            passwordTextBox = new TextBox { Left = 20, Top = 340, Width = 200 };
-            passwordTextBox.UseSystemPasswordChar = true; // To hide password input
-            Controls.Add(passwordTextBox);
-
             // Adjust the size of the form to accommodate new fields
-            Size = new System.Drawing.Size(350, 400);
+            Size = new System.Drawing.Size(350, 300);
             // File dialog for selecting images
             openFileDialog = new OpenFileDialog { Multiselect = true, Filter = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg" };
 
             // Form settings
             Text = "Image Settings";
-            Size = new System.Drawing.Size(350, 300);
-
         }
 
         private void LoadConfig()
