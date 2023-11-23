@@ -20,17 +20,16 @@ namespace _2ndMonitor
         private Timer imageSliderTimer;
         private List<string> imagePaths;  // List of paths to your images
         private int currentImageIndex = 0;
-        /*        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
-        */
-/*        private string connectionString = "Server=DESKTOP-JDQGAO5\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
-*/
+        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
 
+        /*        private string connectionString = "Server=DESKTOP-JDQGAO5\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
+        */
         /*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQLEXPRESS;Database=easypos;User Id=notifman;Password=root1234;";
         */
         /*        private string connectionString = "Server=DESKTOP-J5EHGKE\\SQL2008;Database=easypos;User Id=notifman;Password=root1234;";
         */
-        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
-
+/*        private string connectionString = "Server=localhost;Database=easypos;User Id=notifman;Password=root1234;";
+*/
 /*        private string connectionString = "Server=localhost;Database=easypos;User Id=sa;Password=easyfis;";
 */
 
@@ -41,9 +40,8 @@ namespace _2ndMonitor
             CheckPermission();
             CheckServiceBroker();
             this.Load += new EventHandler(Form1_Load);
+            ShowImageSettingsForm();
             InitializeImageSlider();
-/*            ShowImageSettingsForm();
-*/
             SetupSqlDependency();
             InitialFetchData();
         }
