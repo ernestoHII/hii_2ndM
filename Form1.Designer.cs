@@ -100,6 +100,7 @@ namespace _2ndMonitor
             this.Total.Size = new System.Drawing.Size(295, 22);
             this.Total.TabIndex = 15;
             this.Total.Text = "0.00";
+            this.Total.TextChanged += new System.EventHandler(this.Total_TextChanged);
             // 
             // Paid
             // 
@@ -181,7 +182,7 @@ namespace _2ndMonitor
             this.ForeColor = System.Drawing.Color.Black;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.Text = "Form1";
+            this.Text = "easyPOS 2nd Display";
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

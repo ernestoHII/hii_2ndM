@@ -431,6 +431,8 @@ namespace _2ndMonitor
                             {
                                 totalAmount = 0; // Reset the totalAmount
                                 Total.Text = $"Total: {totalAmount.ToString("F2")}"; // Update the Total label
+                                Paid.Text = "0.00"; // Update the Paid label to "0.00"
+                                Change.Text = "0.00"; // Update the Paid label to "0.00"
                                 tableLayoutPanel1.Controls.Clear();
 
                                 // Loop to add empty rows up to the 7th row
@@ -540,13 +542,10 @@ namespace _2ndMonitor
                                     // Extract the "TenderAmount" property from the JSON data
                                     decimal? tenderAmount = jsonObject.Value<decimal?>("TenderAmount");
                                     decimal? ChangeAmount = jsonObject.Value<decimal?>("ChangeAmount");
-                                    if (tenderAmount.HasValue)
-                                    {
-                                        Paid.Text = tenderAmount.Value.ToString("0.00");
-                                        Change.Text = ChangeAmount.HasValue ? ChangeAmount.Value.ToString("0.00") : "0.00";
-                                        Console.WriteLine(tenderAmount);
-                                        Console.WriteLine(ChangeAmount);
-                                    }
+                                    Paid.Text = tenderAmount.Value.ToString("0.00");
+                                    Change.Text = ChangeAmount.HasValue ? ChangeAmount.Value.ToString("0.00") : "0.00";
+                                    Console.WriteLine(tenderAmount);
+                                    Console.WriteLine(ChangeAmount);
                                 }
                             }
                         }
@@ -1041,6 +1040,11 @@ namespace _2ndMonitor
             }
 
             return isBrokerEnabled;
+        }
+
+        private void Total_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
