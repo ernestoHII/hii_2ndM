@@ -11,6 +11,8 @@ using System.Windows.Forms;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using ImageSettingsGUI;
+using System.Text;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace _2ndMonitor
 {
@@ -135,8 +137,9 @@ namespace _2ndMonitor
                 SqlClientPermission perm = new SqlClientPermission(System.Security.Permissions.PermissionState.Unrestricted);
                 perm.Demand();
             }
-            catch
+            catch (Exception ex)
             {
+                MessageBox.Show("Permission error: " + ex.Message, "Permission Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw new ApplicationException("No permission");
             }
         }
@@ -156,13 +159,58 @@ namespace _2ndMonitor
             }
             catch (SqlException ex)
             {
-                MessageBox.Show($"Failed to connect to the database: {ex.Message}", "Database Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Log the error details for more in-depth analysis
+                var errorMessages = new StringBuilder();
+                for (int i = 0; i < ex.Errors.Count; i++)
+                {
+                    errorMessages.AppendLine($"Index #{i}\n" +
+                                             $"Message: {ex.Errors[i].Message}\n" +
+                                             $"LineNumber: {ex.Errors[i].LineNumber}\n" +
+                                             $"Source: {ex.Errors[i].Source}\n" +
+                                             $"Procedure: {ex.Errors[i].Procedure}\n");
+                }
+                MessageBox.Show(errorMessages.ToString(), "SQL Exception Details", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(1); // Exit the application if the connection is not successful
+            }
+
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An unexpected error occurred: {ex.Message}", "General Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Handle non-SQL exceptions if necessary or log them
+                // You may decide not to exit the application for non-SQL exceptions depending on the context
             }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
+
+            // Initialize the SignalR connection
+            var hubConnection = new HubConnectionBuilder()
+                .WithUrl("http://localhost:55430/myhub")
+                .Build();
+
+            hubConnection.On<string, string>("ReceiveMessage", (user, hubmessage) =>
+            {
+                // Handle the message received from the hub
+                // Make sure to marshal back to the UI thread if updating the UI
+                this.Invoke((Action)(() =>
+                {
+                    // Update your UI here
+                }));
+            });
+
+            try
+            {
+                await hubConnection.StartAsync();
+                // SignalR connection successfully started
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions (e.g., log them or show a message to the user)
+                MessageBox.Show("Could not connect to the SignalR hub: " + ex.Message);
+                return;
+            }
+
             // Read the configuration file
             bool enableSecondMonitorFeature = ReadConfig();
 
@@ -451,6 +499,7 @@ namespace _2ndMonitor
 
                             else if (actionInformation == "AddSalesLine" || recordInformation == "AddSalesLine")
                             {
+                                MessageBox.Show("AddSalesLine");
                                 // Remove existing labels in the second column (index 1) and rows 0 to 7
                                 for (int row = 0; row < 9; row++)
                                 {
@@ -459,6 +508,7 @@ namespace _2ndMonitor
                                         if (tableLayoutPanel1.GetColumn(control) == 1 && tableLayoutPanel1.GetRow(control) == row)
                                         {
                                             tableLayoutPanel1.Controls.Remove(control);
+                                            MessageBox.Show("AddSalesLine2");
                                             control.Dispose(); // Dispose of the removed control
                                             break; // Exit the loop after removing one control
                                         }
@@ -469,10 +519,12 @@ namespace _2ndMonitor
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
                                 if (jsonObject != null)
                                 {
-                                    // Extract the "Price" property from the JSON data
-                                    decimal? price = jsonObject.Value<decimal?>("Price");
                                     int quantity = jsonObject.Value<int>("Quantity");
                                     int itemId = jsonObject.Value<int>("ItemId");
+                                    int salesId = jsonObject.Value<int>("SalesId");
+                                    // Fetch the price from the TrnSales table using SalesId
+                                    decimal? price = GetAmountFromSalesId(salesId);
+                                    MessageBox.Show("Error reading config.txt: " + price);
 
                                     // Check if "Price" is null
                                     if (price.HasValue)
@@ -494,12 +546,16 @@ namespace _2ndMonitor
                             }
                             else if (actionInformation == "UpdateSalesLine" || recordInformation == "UpdateSalesLine")
                             {
+                                MessageBox.Show("UpdateSalesLine");
                                 JObject jsonObject = JsonConvert.DeserializeObject<JObject>(formInformation);
                                 if (jsonObject != null)
                                 {
-                                    decimal? price = jsonObject.Value<decimal?>("Price");
                                     int quantity = jsonObject.Value<int>("Quantity");
                                     int itemId = jsonObject.Value<int>("ItemId");
+                                    int salesId = jsonObject.Value<int>("SalesId");
+                                    // Fetch the price from the TrnSales table using SalesId
+                                    decimal? price = GetAmountFromSalesId(salesId);
+                                    MessageBox.Show("Error reading config.txt: " + price);
 
                                     if (price.HasValue)
                                     {
@@ -561,7 +617,44 @@ namespace _2ndMonitor
                 Console.WriteLine($"General error: {ex.Message}");
             }
         }
+
         //====================//====================//====================//====================//====================//====================//====================
+
+        // Method to get the Amount from the TrnSales table using SalesId
+        private decimal? GetAmountFromSalesId(int salesId)
+        {
+            decimal? amount = null;
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                // Open the connection
+                connection.Open();
+
+                // Define the query
+                string query = $"SELECT Amount FROM TrnSales WHERE SalesId = @SalesId";
+
+                // Create the command
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    // Use parameters to prevent SQL injection
+                    command.Parameters.AddWithValue("@SalesId", salesId);
+
+                    // Execute the command and process the results
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read()) // If there are rows
+                        {
+                            amount = reader.IsDBNull(reader.GetOrdinal("Amount")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("Amount"));
+                        }
+                    }
+                }
+            }
+
+            return amount;
+        }
+
+
+
         private void DeleteRowFromTableLayoutPanel(string itemDescription)
         {
             for (int row = 0; row < tableLayoutPanel1.RowCount; row++)
